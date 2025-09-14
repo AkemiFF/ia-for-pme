@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
+import Script from "next/script"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -16,6 +17,9 @@ export const metadata: Metadata = {
   creator: "IA pour PME & Freelances",
   publisher: "IA pour PME & Freelances",
   robots: "index, follow",
+  other: {
+    "google-adsense-account": "ca-pub-9041353625362383",
+  },
   openGraph: {
     title: "IA pour PME & Freelances : Automatisez votre activité facilement",
     description:
@@ -53,6 +57,12 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9041353625362383"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
         <Suspense fallback={null}>{children}</Suspense>
         <Analytics />
         {/* TODO: Ajouter Google Analytics / Google Tag Manager ici */}

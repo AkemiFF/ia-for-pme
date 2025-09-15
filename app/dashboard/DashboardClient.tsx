@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
 import Header from "@/components/Header"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText, PlusCircle, Users, Mail, BarChart3, LogOut } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { BarChart3, FileText, LogOut, Mail, PlusCircle, Users } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 interface DashboardStats {
   articles: number
@@ -34,9 +34,12 @@ export default function DashboardClient() {
   }, [isAuthenticated])
 
   const checkAuth = () => {
-    const token = localStorage.getItem("authToken")
+    const token = document.cookie
+      .split("; ")
+      .find(row => row.startsWith("admin-session="))
+      ?.split("=")[1]
     if (!token) {
-      router.push("/dashboard/login")
+      // router.push("/dashboard/login")
       return
     }
     setIsAuthenticated(true)

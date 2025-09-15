@@ -3,7 +3,6 @@
 import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
 import Header from "@/components/Header"
 
 export default function AdminLoginClient() {
@@ -21,23 +20,31 @@ export default function AdminLoginClient() {
     setError("")
 
     try {
-      const supabase = createClient()
-
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: credentials.email,
-        password: credentials.password,
+      const response = await fetch("/api/auth/custom-login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: credentials.email,
+          password: credentials.password,
+        }),
       })
 
-      if (authError) {
-        throw new Error(authError.message)
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || "Erreur de connexion")
+        return
       }
 
-      if (data.user) {
-        // Successfully authenticated
+      if (data.success) {
         router.push("/dashboard")
+        router.refresh()
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur de connexion")
+      console.error("Login error:", err)
+      setError("Erreur de connexion inconnue")
     } finally {
       setLoading(false)
     }
@@ -98,14 +105,10 @@ export default function AdminLoginClient() {
             </button>
           </form>
 
-          <div className="mt-6 p-4 bg-gray-50 rounded-md text-sm text-gray-600">
-            <p className="font-medium mb-2">Pour créer un utilisateur admin :</p>
-            <p>1. Allez dans votre dashboard Supabase</p>
-            <p>2. Section Authentication → Users</p>
-            <p>3. Cliquez "Add user" et créez :</p>
-            <p className="ml-4 font-mono text-xs">Email: admin@example.com</p>
-            <p className="ml-4 font-mono text-xs">Password: password123</p>
-            <p className="mt-2 text-xs text-gray-500">Ou exécutez le script create-admin-user.js</p>
+          <div className="mt-6 p-4 bg-blue-50 rounded-md text-sm text-gray-700">
+            <p className="font-medium mb-2">Compte de test :</p>
+            <p>Email: admin@example.com</p>
+            <p>Mot de passe: admin123</p>
           </div>
         </div>
       </main>

@@ -3,6 +3,7 @@
 import Header from "@/components/Header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { isAuthenticated } from "@/hooks/use-auth"
 import { BarChart3, FileText, LogOut, Mail, PlusCircle, Users } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -16,7 +17,7 @@ interface DashboardStats {
 }
 
 export default function DashboardClient() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isConnected, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<DashboardStats>({
     articles: 0,
@@ -26,20 +27,22 @@ export default function DashboardClient() {
   })
   const router = useRouter()
 
-  useEffect(() => {
-    checkAuth()
-    if (isAuthenticated) {
-      loadStats()
-    }
-  }, [isAuthenticated])
 
-  const checkAuth = () => {
-    const token = document.cookie
-      .split("; ")
-      .find(row => row.startsWith("admin-session="))
-      ?.split("=")[1]
+  useEffect(() => {
+    const runAuth = async () => {
+      await checkAuth()
+      if (isConnected) {
+        await loadStats()
+      }
+    }
+    runAuth()
+  }, [isConnected])
+
+  const checkAuth = async () => {
+    const token = await isAuthenticated()
+
     if (!token) {
-      // router.push("/dashboard/login")
+      router.push("/dashboard/login")
       return
     }
     setIsAuthenticated(true)
@@ -90,7 +93,7 @@ export default function DashboardClient() {
     )
   }
 
-  if (!isAuthenticated) {
+  if (!isConnected) {
     return null
   }
 

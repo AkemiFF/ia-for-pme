@@ -1,10 +1,11 @@
 "use client"
 
-import type React from "react"
 import MarkdownEditor from "@/components/dashboard/MarkdownEditor"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import Header from "@/components/Header"
+import { isAuthenticated } from "@/hooks/use-auth"
+import { useRouter } from "next/navigation"
+import type React from "react"
+import { useEffect, useState } from "react"
 
 interface Category {
   id: string
@@ -45,22 +46,31 @@ export default function CreateArticleClient() {
   const router = useRouter()
 
   // Auth guard
+
+
   useEffect(() => {
-    const token = localStorage.getItem("authToken")
+    const runAuth = async () => {
+      await checkAuth()
+    }
+    runAuth()
+  }, [])
+
+  const checkAuth = async () => {
+    const token = await isAuthenticated()
+
     if (!token) {
       router.push("/dashboard/login")
       return
     }
-
-    // Fetch categories
-    fetchCategories(token)
-  }, [router])
+    fetchCategories("token")
+    setLoading(false)
+  }
 
   const fetchCategories = async (token: string) => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          // Authorization: `Bearer ${token}`,
         },
       })
 
@@ -426,11 +436,10 @@ Utilisez les outils de la barre d'outils pour formater votre contenu :
 
             {message.text && (
               <div
-                className={`p-4 rounded-md ${
-                  message.type === "success"
-                    ? "bg-green-50 border border-green-200 text-green-700"
-                    : "bg-red-50 border border-red-200 text-red-700"
-                }`}
+                className={`p-4 rounded-md ${message.type === "success"
+                  ? "bg-green-50 border border-green-200 text-green-700"
+                  : "bg-red-50 border border-red-200 text-red-700"
+                  }`}
               >
                 {message.text}
               </div>

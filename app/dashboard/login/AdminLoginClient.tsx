@@ -1,55 +1,74 @@
 "use client"
 
+import Header from "@/components/Header"
+import { login } from "@/hooks/use-auth"
+
+import { useRouter } from "next/navigation"
 import type React from "react"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Header from "@/components/Header"
 
 export default function AdminLoginClient() {
   const [credentials, setCredentials] = useState({
     email: "",
     password: "",
   })
-  const [loading, setLoading] = useState(false)
+  // const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
+
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault()
+  //   setLoading(true)
+  //   setError("")
+
+  //   try {
+  //     const response = await fetch("/api/auth/custom-login", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         email: credentials.email,
+  //         password: credentials.password,
+  //       }),
+  //     })
+
+  //     const data = await response.json()
+
+  //     if (!response.ok) {
+  //       setError(data.error || "Erreur de connexion")
+  //       return
+  //     }
+
+  //     if (data.success) {
+  //       router.push("/dashboard")
+  //       router.refresh()
+  //     }
+  //   } catch (err) {
+  //     console.error("Login error:", err)
+  //     setError("Erreur de connexion inconnue")
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setError("")
+    setLoading(true)
+    const result = await login(credentials.email, credentials.password)
+    setLoading(false)
+    console.log("Login result:", result);
 
-    try {
-      const response = await fetch("/api/auth/custom-login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: credentials.email,
-          password: credentials.password,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || "Erreur de connexion")
-        return
-      }
-
-      if (data.success) {
-        router.push("/dashboard")
-        router.refresh()
-      }
-    } catch (err) {
-      console.error("Login error:", err)
-      setError("Erreur de connexion inconnue")
-    } finally {
-      setLoading(false)
+    if (result.token) {
+      router.push("/dashboard")
+      router.refresh()
+    } else {
+      setError(result.error || "Erreur de connexion")
     }
   }
-
   return (
     <div className="min-h-screen bg-white">
       <Header />

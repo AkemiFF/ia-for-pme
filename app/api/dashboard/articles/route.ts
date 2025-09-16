@@ -1,14 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { verifyAuthToken } from "@/lib/auth/verify-token"
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { searchParams } = new URL(request.url)
 
-    // TODO: Add proper JWT token validation here
-    const authHeader = request.headers.get("authorization")
-    if (!authHeader?.startsWith("Bearer ")) {
+    // Verify authentication with proper token validation
+    const user = await verifyAuthToken(request)
+
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -79,9 +81,10 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
 
-    // TODO: Add proper JWT token validation here
-    const authHeader = request.headers.get("authorization")
-    if (!authHeader?.startsWith("Bearer ")) {
+    // Verify authentication with proper token validation
+    const user = await verifyAuthToken(request)
+
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -117,7 +120,7 @@ export async function POST(request: NextRequest) {
         featured_image: cover_image_url,
         published: Boolean(published),
         affiliate_links: affiliateLinksJson,
-        author_name: "Admin", // TODO: Get from authenticated user
+        author_name: user.name || "Admin", // Get from authenticated user
         published_at: published ? new Date().toISOString() : null,
         reading_time: Math.ceil(content.split(" ").length / 200), // Estimate reading time
       })

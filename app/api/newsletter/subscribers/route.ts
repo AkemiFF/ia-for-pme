@@ -1,18 +1,21 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { verifyAuthToken } from "@/lib/auth/verify-token"
 
 export async function GET(request: NextRequest) {
   try {
+    console.log("[v0] GET /api/newsletter/subscribers - Starting authentication check")
     const supabase = await createClient()
     const { searchParams } = new URL(request.url)
 
-    // Verify authentication
-    const authHeader = request.headers.get("authorization")
-    if (!authHeader?.startsWith("Bearer ")) {
+    const user = await verifyAuthToken(request)
+
+    if (!user) {
+      console.log("[v0] GET /api/newsletter/subscribers - Authentication failed")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // TODO: Add proper JWT token validation here
+    console.log("[v0] GET /api/newsletter/subscribers - Authentication successful for user:", user.email)
 
     const page = Number.parseInt(searchParams.get("page") || "1")
     const limit = Math.min(Number.parseInt(searchParams.get("limit") || "10"), 50)
@@ -33,6 +36,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to fetch subscribers" }, { status: 500 })
     }
 
+    console.log("[v0] GET /api/newsletter/subscribers - Successfully fetched", subscribers?.length || 0, "subscribers")
+
     return NextResponse.json({
       subscribers: subscribers || [],
       pagination: {
@@ -43,7 +48,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error("API error:", error)
+    console.error("[v0] GET /api/newsletter/subscribers - API error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -52,9 +57,9 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
 
-    // Verify authentication for admin operations
-    const authHeader = request.headers.get("authorization")
-    if (!authHeader?.startsWith("Bearer ")) {
+    const user = await verifyAuthToken(request)
+
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 

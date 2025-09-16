@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { verifyAuthToken } from "@/lib/auth/verify-token"
 
 export async function POST(request: NextRequest) {
   try {
@@ -77,16 +78,18 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    console.log("[v0] GET /api/leads - Starting authentication check")
     const supabase = await createClient()
     const { searchParams } = new URL(request.url)
 
-    // Verify authentication
-    const authHeader = request.headers.get("authorization")
-    if (!authHeader?.startsWith("Bearer ")) {
+    const user = await verifyAuthToken(request)
+
+    if (!user) {
+      console.log("[v0] GET /api/leads - Authentication failed")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // TODO: Add proper JWT token validation here
+    console.log("[v0] GET /api/leads - Authentication successful for user:", user.email)
 
     const page = Number.parseInt(searchParams.get("page") || "1")
     const limit = Math.min(Number.parseInt(searchParams.get("limit") || "10"), 50)
@@ -107,6 +110,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to fetch leads" }, { status: 500 })
     }
 
+    console.log("[v0] GET /api/leads - Successfully fetched", leads?.length || 0, "leads")
+
     return NextResponse.json({
       leads: leads || [],
       pagination: {
@@ -117,7 +122,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error("API error:", error)
+    console.error("[v0] GET /api/leads - API error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

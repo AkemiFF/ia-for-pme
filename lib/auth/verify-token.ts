@@ -19,6 +19,8 @@ export async function verifyAuthToken(request: Request): Promise<AuthUser | null
       console.log("[v0] Found Bearer token in Authorization header")
     } else {
       const cookieHeader = request.headers.get("cookie")
+      console.log("[v0] Cookie header:", cookieHeader)
+
       if (cookieHeader) {
         const cookies = cookieHeader.split(";").reduce(
           (acc, cookie) => {
@@ -29,7 +31,8 @@ export async function verifyAuthToken(request: Request): Promise<AuthUser | null
           {} as Record<string, string>,
         )
 
-        token = cookies["admin-token"] || null
+        token = cookies["token"] || null
+        console.log("[v0] Available cookies:", Object.keys(cookies))
         console.log("[v0] Found token in cookies:", !!token)
       }
     }
@@ -50,7 +53,7 @@ export async function verifyAuthToken(request: Request): Promise<AuthUser | null
     console.log("[v0] Token verified successfully for user:", decoded.email)
 
     return {
-      id: decoded.id,
+      id: decoded.sub || decoded.id,
       email: decoded.email,
       role: decoded.role || "admin",
     }

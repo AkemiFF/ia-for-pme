@@ -42,11 +42,10 @@ export async function verifyAuthToken(request: Request): Promise<AuthUser | null
       return null
     }
 
-    const jwtSecret = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET || "fallback-secret-key"
-    console.log("[v0] JWT_SECRET available:", !!process.env.JWT_SECRET)
-    console.log("[v0] SUPABASE_JWT_SECRET available:", !!process.env.SUPABASE_JWT_SECRET)
+    const JWT_SECRET = process.env.JWT_SECRET ?? "dev_secret_change_me"
+    console.log("[v0] Using JWT_SECRET:", !!process.env.JWT_SECRET ? "from env" : "fallback")
 
-    const decoded = jwt.verify(token, jwtSecret) as any
+    const decoded = jwt.verify(token, JWT_SECRET) as any
     console.log("[v0] Token verified successfully for user:", decoded.email)
 
     return {

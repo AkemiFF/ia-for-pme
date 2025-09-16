@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
 
 export type User = {
   id: string
@@ -21,6 +22,13 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
+
+  const handleUnauthorized = useCallback(() => {
+    setUser(null)
+    setError("Session expirée")
+    router.push("/dashboard/login")
+  }, [router])
 
   // Check authentication status
   const checkAuth = useCallback(async () => {
@@ -40,6 +48,10 @@ export function useAuth() {
         }
       }
 
+      if (response.status === 401) {
+        handleUnauthorized()
+      }
+
       setUser(null)
       return { authenticated: false }
     } catch (err) {
@@ -49,7 +61,7 @@ export function useAuth() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [handleUnauthorized])
 
   // Login function
   const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
@@ -112,16 +124,25 @@ export function useAuth() {
     }
   }, [])
 
-  const fetchWithAuth = useCallback(async (url: string, options: RequestInit = {}) => {
-    return fetch(url, {
-      ...options,
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    })
-  }, [])
+  const fetchWithAuth = useCallback(
+    async (url: string, options: RequestInit = {}) => {
+      const response = await fetch(url, {
+        ...options,
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers,
+        },
+      })
+
+      if (response.status === 401) {
+        handleUnauthorized()
+      }
+
+      return response
+    },
+    [handleUnauthorized],
+  )
 
   const verifyToken = useCallback(async (): Promise<boolean> => {
     try {
@@ -129,11 +150,17 @@ export function useAuth() {
         method: "GET",
         credentials: "include",
       })
+
+      if (response.status === 401) {
+        handleUnauthorized()
+        return false
+      }
+
       return response.ok
     } catch {
       return false
     }
-  }, [])
+  }, [handleUnauthorized])
 
   // Check auth on mount
   useEffect(() => {

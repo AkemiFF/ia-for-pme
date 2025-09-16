@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search")
     const offset = (page - 1) * limit
 
-    let query = supabase.from("newsletter_subscribers").select("*").order("created_at", { ascending: false })
+    let query = supabase.from("newsletter_subscribers").select("*").order("subscribed_at", { ascending: false })
 
     if (search) {
       query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`)

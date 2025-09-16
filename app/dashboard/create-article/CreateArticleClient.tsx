@@ -1,11 +1,21 @@
 "use client"
 
-import MarkdownEditor from "@/components/dashboard/MarkdownEditor"
-import Header from "@/components/Header"
-import { isAuthenticated } from "@/hooks/use-auth"
-import { useRouter } from "next/navigation"
 import type React from "react"
+
+import { useAuth } from "@/hooks/use-auth"
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout"
+import MarkdownEditor from "@/components/dashboard/MarkdownEditor"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { Bot, FileText, Save, ArrowLeft, AlertCircle, Sparkles } from "lucide-react"
 
 interface Category {
   id: string
@@ -26,6 +36,7 @@ interface ArticleForm {
 }
 
 export default function CreateArticleClient() {
+  const { fetchWithAuth, isAuthenticated } = useAuth()
   const [form, setForm] = useState<ArticleForm>({
     title: "",
     slug: "",
@@ -45,34 +56,15 @@ export default function CreateArticleClient() {
   const [aiKeywords, setAiKeywords] = useState("")
   const router = useRouter()
 
-  // Auth guard
-
-
   useEffect(() => {
-    const runAuth = async () => {
-      await checkAuth()
+    if (isAuthenticated) {
+      fetchCategories()
     }
-    runAuth()
-  }, [])
+  }, [isAuthenticated])
 
-  const checkAuth = async () => {
-    const token = await isAuthenticated()
-
-    if (!token) {
-      router.push("/dashboard/login")
-      return
-    }
-    fetchCategories("token")
-    setLoading(false)
-  }
-
-  const fetchCategories = async (token: string) => {
+  const fetchCategories = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, {
-        headers: {
-          // Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await fetchWithAuth("/api/categories")
 
       if (response.ok) {
         const data = await response.json()
@@ -106,15 +98,8 @@ export default function CreateArticleClient() {
     }
   }, [form.title])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target
-
-    if (type === "checkbox") {
-      const checked = (e.target as HTMLInputElement).checked
-      setForm((prev) => ({ ...prev, [name]: checked }))
-    } else {
-      setForm((prev) => ({ ...prev, [name]: value }))
-    }
+  const handleInputChange = (name: string, value: string | boolean) => {
+    setForm((prev) => ({ ...prev, [name]: value }))
   }
 
   const generateWithAI = async () => {
@@ -127,13 +112,8 @@ export default function CreateArticleClient() {
     setMessage({ type: "", text: "" })
 
     try {
-      const token = localStorage.getItem("authToken")
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ai/generate-article`, {
+      const response = await fetchWithAuth("/api/ai/generate-article", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           title: form.title,
           keywords: aiKeywords,
@@ -185,19 +165,9 @@ export default function CreateArticleClient() {
     }
 
     try {
-      const token = localStorage.getItem("authToken")
-      const response = await fetch(`/api/dashboard/articles`, {
+      const response = await fetchWithAuth("/api/dashboard/articles", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          // TODO: Add CSRF token header for production
-        },
-        body: JSON.stringify({
-          ...form,
-          // SECURITY: Content should be sanitized on server-side
-          // Consider using DOMPurify or similar for client-side preview
-        }),
+        body: JSON.stringify(form),
       })
 
       if (!response.ok) {
@@ -233,238 +203,222 @@ export default function CreateArticleClient() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
+    <DashboardLayout>
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Créer un Article</h1>
+          <p className="text-gray-600 mt-2">Rédigez et publiez un nouvel article pour votre blog IA PME & Freelances</p>
+        </div>
 
-      <main className="max-w-6xl mx-auto pt-20 px-4 pb-12">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Créer un Article</h1>
-            <p className="text-gray-600">Rédigez et publiez un nouvel article pour votre blog IA PME & Freelances</p>
-          </div>
-
-          {/* AI Generation Section */}
-          <div className="mb-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
-            <h2 className="text-lg font-semibold text-blue-900 mb-4">🤖 Génération IA</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-blue-800 mb-2">Titre (requis pour IA)</label>
-                <input
-                  type="text"
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-900">
+              <Bot className="h-5 w-5" />
+              Génération IA
+            </CardTitle>
+            <CardDescription className="text-blue-700">
+              Utilisez l'IA pour générer automatiquement le contenu de votre article
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="ai-title" className="text-blue-800">
+                  Titre (requis pour IA)
+                </Label>
+                <Input
+                  id="ai-title"
                   value={form.title}
-                  onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  onChange={(e) => handleInputChange("title", e.target.value)}
                   placeholder="Ex: Comment l'IA transforme les freelances"
+                  className="border-blue-300 focus:border-blue-500"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-blue-800 mb-2">Mots-clés</label>
-                <input
-                  type="text"
+              <div className="space-y-2">
+                <Label htmlFor="ai-keywords" className="text-blue-800">
+                  Mots-clés
+                </Label>
+                <Input
+                  id="ai-keywords"
                   value={aiKeywords}
                   onChange={(e) => setAiKeywords(e.target.value)}
-                  className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
                   placeholder="IA, freelance, PME, automatisation, productivité"
+                  className="border-blue-300 focus:border-blue-500"
                 />
               </div>
             </div>
-            <button
+            <Button
               type="button"
               onClick={generateWithAI}
               disabled={aiLoading || !form.title || !aiKeywords}
-              className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="bg-blue-600 hover:bg-blue-700"
             >
-              {aiLoading ? "Génération en cours..." : "Générer via IA"}
-            </button>
-          </div>
+              {aiLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Génération en cours...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Générer via IA
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                  Titre *
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  name="title"
-                  required
-                  value={form.title}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Détails de l'article
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Titre *</Label>
+                  <Input
+                    id="title"
+                    required
+                    value={form.title}
+                    onChange={(e) => handleInputChange("title", e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="slug">Slug (auto-généré)</Label>
+                  <Input
+                    id="slug"
+                    value={form.slug}
+                    onChange={(e) => handleInputChange("slug", e.target.value)}
+                    className="bg-gray-50"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="excerpt">Extrait</Label>
+                <Textarea
+                  id="excerpt"
+                  rows={3}
+                  value={form.excerpt}
+                  onChange={(e) => handleInputChange("excerpt", e.target.value)}
+                  placeholder="Résumé de l'article (150-160 caractères pour SEO)"
                 />
               </div>
 
-              <div>
-                <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-2">
-                  Slug (auto-généré)
-                </label>
-                <input
-                  type="text"
-                  id="slug"
-                  name="slug"
-                  value={form.slug}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 bg-gray-50"
+              <div className="space-y-2">
+                <Label>Contenu (Markdown) *</Label>
+                <MarkdownEditor
+                  value={form.content}
+                  onChange={(content) => handleInputChange("content", content)}
+                  placeholder="# Titre de l'article\n\nVotre contenu en Markdown..."
+                />
+                <p className="text-xs text-gray-500">
+                  Utilisez l'éditeur avancé avec aperçu en temps réel. Le contenu sera sanitisé côté serveur.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="category">Catégorie *</Label>
+                  <Select value={form.category_id} onValueChange={(value) => handleInputChange("category_id", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner une catégorie" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="tags">Tags (séparés par des virgules)</Label>
+                  <Input
+                    id="tags"
+                    value={form.tags}
+                    onChange={(e) => handleInputChange("tags", e.target.value)}
+                    placeholder="IA, PME, automatisation"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cover_image_url">URL de l'image de couverture</Label>
+                <Input
+                  id="cover_image_url"
+                  type="url"
+                  value={form.cover_image_url}
+                  onChange={(e) => handleInputChange("cover_image_url", e.target.value)}
+                  placeholder="https://example.com/image.jpg"
                 />
               </div>
-            </div>
 
-            <div>
-              <label htmlFor="excerpt" className="block text-sm font-medium text-gray-700 mb-2">
-                Extrait
-              </label>
-              <textarea
-                id="excerpt"
-                name="excerpt"
-                rows={3}
-                value={form.excerpt}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="Résumé de l'article (150-160 caractères pour SEO)"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="affiliate_links">Liens d'affiliation (JSON)</Label>
+                <Textarea
+                  id="affiliate_links"
+                  rows={4}
+                  value={form.affiliate_links}
+                  onChange={(e) => handleInputChange("affiliate_links", e.target.value)}
+                  className="font-mono text-sm"
+                  placeholder='[{"name": "Outil IA", "url": "https://...", "description": "..."}]'
+                />
+                <p className="text-xs text-gray-500">Format JSON pour les outils recommandés dans l'article</p>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Contenu (Markdown) *</label>
-              <MarkdownEditor
-                value={form.content}
-                onChange={(content) => setForm((prev) => ({ ...prev, content }))}
-                placeholder="# Titre de l'article
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="published"
+                  checked={form.published}
+                  onCheckedChange={(checked) => handleInputChange("published", !!checked)}
+                />
+                <Label htmlFor="published">Publier immédiatement</Label>
+              </div>
 
-Votre contenu en Markdown...
+              {message.text && (
+                <Alert variant={message.type === "success" ? "default" : "destructive"}>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{message.text}</AlertDescription>
+                </Alert>
+              )}
 
-## Section principale
+              <div className="flex gap-4">
+                <Button type="submit" disabled={loading} className="flex items-center gap-2">
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Création...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      Créer l'article
+                    </>
+                  )}
+                </Button>
 
-Utilisez les outils de la barre d'outils pour formater votre contenu :
-- **Gras** et *italique*
-- [Liens](https://example.com)
-- ![Images](https://example.com/image.jpg)
-- `Code` et blocs de code
-- > Citations
-- Listes et tableaux
-
-> 💡 **Conseil** : Utilisez les raccourcis clavier pour une édition plus rapide !"
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                Utilisez l'éditeur avancé avec aperçu en temps réel. Le contenu sera sanitisé côté serveur.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="category_id" className="block text-sm font-medium text-gray-700 mb-2">
-                  Catégorie *
-                </label>
-                <select
-                  id="category_id"
-                  name="category_id"
-                  required
-                  value={form.category_id}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push("/dashboard/articles")}
+                  className="flex items-center gap-2"
                 >
-                  <option value="">Sélectionner une catégorie</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+                  <ArrowLeft className="h-4 w-4" />
+                  Retour à la liste
+                </Button>
               </div>
-
-              <div>
-                <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-2">
-                  Tags (séparés par des virgules)
-                </label>
-                <input
-                  type="text"
-                  id="tags"
-                  name="tags"
-                  value={form.tags}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
-                  placeholder="IA, PME, automatisation"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="cover_image_url" className="block text-sm font-medium text-gray-700 mb-2">
-                URL de l'image de couverture
-              </label>
-              <input
-                type="url"
-                id="cover_image_url"
-                name="cover_image_url"
-                value={form.cover_image_url}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="https://example.com/image.jpg"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="affiliate_links" className="block text-sm font-medium text-gray-700 mb-2">
-                Liens d'affiliation (JSON)
-              </label>
-              <textarea
-                id="affiliate_links"
-                name="affiliate_links"
-                rows={4}
-                value={form.affiliate_links}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono text-sm"
-                placeholder='[{"name": "Outil IA", "url": "https://...", "description": "..."}]'
-              />
-              <p className="text-xs text-gray-500 mt-1">Format JSON pour les outils recommandés dans l'article</p>
-            </div>
-
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="published"
-                name="published"
-                checked={form.published}
-                onChange={handleInputChange}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="published" className="ml-2 block text-sm text-gray-700">
-                Publier immédiatement
-              </label>
-            </div>
-
-            {message.text && (
-              <div
-                className={`p-4 rounded-md ${message.type === "success"
-                  ? "bg-green-50 border border-green-200 text-green-700"
-                  : "bg-red-50 border border-red-200 text-red-700"
-                  }`}
-              >
-                {message.text}
-              </div>
-            )}
-
-            <div className="flex gap-4">
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {loading ? "Création..." : "Créer l'article"}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => router.push("/dashboard/articles")}
-                className="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600 focus:ring-offset-2 transition-colors"
-              >
-                Retour à la liste
-              </button>
-            </div>
-          </form>
-        </div>
-      </main>
-    </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
   )
 }

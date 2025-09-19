@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
         name,
         email,
         source,
-        download_url: "/downloads/checklist-ia-pme.pdf", // TODO: Generate actual download URL
+        download_url: `/downloads/${source}.pdf`, // Replaced TODO with actual download URL generation
       })
       .select()
       .single()
@@ -48,8 +48,34 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // TODO: Send email with download link
-    // TODO: Integrate with MailerLite automation
+    if (process.env.MAILERLITE_API_KEY) {
+      try {
+        const mailerLiteResponse = await fetch("https://connect.mailerlite.com/api/subscribers", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.MAILERLITE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            email,
+            fields: {
+              name,
+              source: `lead-magnet-${source}`,
+            },
+            groups: ["lead-magnets"], // Add to lead magnets group
+          }),
+        })
+
+        if (mailerLiteResponse.ok) {
+          const mailerLiteData = await mailerLiteResponse.json()
+          // Update lead record with MailerLite ID
+          await supabase.from("lead_magnets").update({ mailerlite_id: mailerLiteData.data?.id }).eq("id", leadData.id)
+        }
+      } catch (mailerLiteError) {
+        console.error("MailerLite integration error:", mailerLiteError)
+        // Don't fail the request if MailerLite fails
+      }
+    }
 
     // Track analytics
     await supabase.from("analytics_events").insert({

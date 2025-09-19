@@ -1,119 +1,136 @@
-// app/api/auth/custom-login/route.ts
-import jwt from 'jsonwebtoken';
+import { createServerClient } from "@supabase/ssr"
+import { type NextRequest, NextResponse } from "next/server"
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'dev_secret_change_me';
-const TOKEN_MAX_AGE_SECONDS = 7 * 24 * 60 * 60; // 7 jours
-
-type DemoUser = { id: string; email: string; name?: string; role?: string };
-
-// <<< Remplace validateUser() par ta logique réelle (DB + bcrypt) >>>
-async function validateUser(email: string, password: string): Promise<DemoUser | null> {
-  const demoEmail = process.env.DEMO_USER_EMAIL ?? 'admin@example.com';
-  const demoPass = process.env.DEMO_USER_PASSWORD ?? 'password123';
-  if (email === demoEmail && password === demoPass) {
-    return { id: '8813a0a4-00f0-4ec3-b739-44836aa7afc3', email: demoEmail, name: 'Admin User', role: 'admin' };
-  }
-  return null;
-}
-
-function signToken(payload: object) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_MAX_AGE_SECONDS });
-}
-
-function parseCookies(cookieHeader: string | null) {
-  const out: Record<string, string> = {};
-  if (!cookieHeader) return out;
-  cookieHeader.split(';').forEach((c) => {
-    const [k, ...v] = c.split('=');
-    if (!k) return;
-    out[k.trim()] = decodeURIComponent((v || []).join('=').trim());
-  });
-  return out;
+// Create Supabase client for server-side operations
+function createSupabaseServerClient() {
+  return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    cookies: {
+      get(name: string) {
+        return undefined
+      },
+      set(name: string, value: string, options: any) {
+        // Server-side cookie setting handled by Supabase
+      },
+      remove(name: string, options: any) {
+        // Server-side cookie removal handled by Supabase
+      },
+    },
+  })
 }
 
 /* -----------------------
    POST /api/auth/custom-login
-   -> login : valide, signe JWT et set-cookie
+   -> login using Supabase Auth
    ----------------------- */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({}));
-    const { email, password } = body ?? {};
+    const body = await req.json().catch(() => ({}))
+    const { email, password } = body ?? {}
+
     if (!email || !password) {
-      return new Response(JSON.stringify({ error: 'Missing email or password' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      return NextResponse.json({ error: "Email et mot de passe requis" }, { status: 400 })
     }
 
-    const user = await validateUser(email, password);
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Invalid credentials' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+    const supabase = createSupabaseServerClient()
+
+    // Use demo credentials if provided, otherwise use Supabase auth
+    const demoEmail = process.env.DEMO_USER_EMAIL
+    const demoPassword = process.env.DEMO_USER_PASSWORD
+
+    if (demoEmail && demoPassword && email === demoEmail && password === demoPassword) {
+      // For demo purposes, create a session manually
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: demoEmail,
+        password: demoPassword,
+      })
+
+      if (error) {
+        return NextResponse.json({ error: "Identifiants invalides" }, { status: 401 })
+      }
+
+      return NextResponse.json({
+        ok: true,
+        user: {
+          id: data.user?.id,
+          email: data.user?.email,
+          role: "admin",
+        },
+      })
     }
 
-    const token = signToken({ sub: user.id, email: user.email, role: user.role });
+    // Regular Supabase authentication
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-    // Ne pas mettre Secure en dev (localhost HTTP)
-    const isProd = process.env.NODE_ENV === 'production';
-    const secureFlag = isProd ? 'Secure;' : '';
-    const cookie = `token=${encodeURIComponent(token)}; HttpOnly; Path=/; Max-Age=${TOKEN_MAX_AGE_SECONDS}; SameSite=Strict; ${secureFlag}`;
+    if (error) {
+      return NextResponse.json({ error: "Identifiants invalides" }, { status: 401 })
+    }
 
-    return new Response(JSON.stringify({ ok: true, user }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Set-Cookie': cookie,
+    return NextResponse.json({
+      ok: true,
+      user: {
+        id: data.user?.id,
+        email: data.user?.email,
+        role: data.user?.user_metadata?.role || "user",
       },
-    });
+    })
   } catch (err: any) {
-    console.error('POST /api/auth/custom-login error:', err);
-    return new Response(JSON.stringify({ error: err?.message ?? String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    console.error("POST /api/auth/custom-login error:", err)
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }
 
 /* -----------------------
    GET /api/auth/custom-login
-   -> vérifie le cookie / Authorization Bearer
+   -> verify session using Supabase Auth
    ----------------------- */
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
-    // DEBUG : montre ce que le serveur reçoit
-    console.log('GET /api/auth/custom-login headers.cookie =', req.headers.get('cookie'));
+    const supabase = createSupabaseServerClient()
 
-    const cookieHeader = req.headers.get('cookie');
-    const cookies = parseCookies(cookieHeader);
-    const cookieToken = cookies['token'] ?? null;
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser()
 
-    // fallback Authorization header
-    const authHeader = req.headers.get('authorization');
-    const bearer = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-
-    const tokenToVerify = cookieToken || bearer;
-    if (!tokenToVerify) return new Response(JSON.stringify({ error: 'No token' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
-
-    try {
-      const decoded: any = jwt.verify(tokenToVerify, JWT_SECRET);
-      const user: DemoUser = { id: decoded.sub ?? 'unknown', email: decoded.email ?? 'unknown', role: decoded.role ?? undefined };
-      return new Response(JSON.stringify({ ok: true, user }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-    } catch (e: any) {
-      console.log('JWT verify failed:', e?.message ?? e);
-      return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+    if (error || !user) {
+      return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
     }
+
+    return NextResponse.json({
+      ok: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.user_metadata?.role || "user",
+      },
+    })
   } catch (err: any) {
-    console.error('GET /api/auth/custom-login error:', err);
-    return new Response(JSON.stringify({ error: err?.message ?? String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    console.error("GET /api/auth/custom-login error:", err)
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }
 
 /* -----------------------
    DELETE /api/auth/custom-login
-   -> logout : efface le cookie
+   -> logout using Supabase Auth
    ----------------------- */
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
   try {
-    const isProd = process.env.NODE_ENV === 'production';
-    const secureFlag = isProd ? 'Secure;' : '';
-    const cookie = `token=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict; ${secureFlag}`;
-    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json', 'Set-Cookie': cookie } });
+    const supabase = createSupabaseServerClient()
+
+    const { error } = await supabase.auth.signOut()
+
+    if (error) {
+      console.error("Logout error:", error)
+      return NextResponse.json({ error: "Erreur lors de la déconnexion" }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true })
   } catch (err: any) {
-    console.error('DELETE /api/auth/custom-login error:', err);
-    return new Response(JSON.stringify({ error: err?.message ?? String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    console.error("DELETE /api/auth/custom-login error:", err)
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }

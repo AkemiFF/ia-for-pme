@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken"
+import { createServerClient } from "@supabase/ssr"
 
 export interface AuthUser {
   id: string
@@ -8,53 +8,55 @@ export interface AuthUser {
 
 export async function verifyAuthToken(request: Request): Promise<AuthUser | null> {
   try {
-    console.log("[v0] Verifying auth token...")
+    console.log("[v0] Verifying auth token with Supabase...")
 
-    // Try to get token from Authorization header first
-    const authHeader = request.headers.get("authorization")
-    let token: string | null = null
+    // Create Supabase client for server-side operations
+    const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+      cookies: {
+        get(name: string) {
+          const cookieHeader = request.headers.get("cookie")
+          if (!cookieHeader) return undefined
 
-    if (authHeader?.startsWith("Bearer ")) {
-      token = authHeader.substring(7)
-      console.log("[v0] Found Bearer token in Authorization header")
-    } else {
-      const cookieHeader = request.headers.get("cookie")
-      console.log("[v0] Cookie header:", cookieHeader)
+          const cookies = cookieHeader.split(";").reduce(
+            (acc, cookie) => {
+              const [key, value] = cookie.trim().split("=")
+              acc[key] = decodeURIComponent(value || "")
+              return acc
+            },
+            {} as Record<string, string>,
+          )
 
-      if (cookieHeader) {
-        const cookies = cookieHeader.split(";").reduce(
-          (acc, cookie) => {
-            const [key, value] = cookie.trim().split("=")
-            acc[key] = value
-            return acc
-          },
-          {} as Record<string, string>,
-        )
+          return cookies[name]
+        },
+        set(name: string, value: string, options: any) {
+          // Server-side cookie setting handled by Supabase
+        },
+        remove(name: string, options: any) {
+          // Server-side cookie removal handled by Supabase
+        },
+      },
+    })
 
-        token = cookies["token"] || null
-        console.log("[v0] Available cookies:", Object.keys(cookies))
-        console.log("[v0] Found token in cookies:", !!token)
-      }
-    }
+    // Try to get user from Supabase session
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser()
 
-    if (!token) {
-      console.log("[v0] No token found in headers or cookies")
+    if (error || !user) {
+      console.log("[v0] No valid Supabase session found")
       return null
     }
 
-    const JWT_SECRET = process.env.JWT_SECRET ?? "dev_secret_change_me"
-    console.log("[v0] Using JWT_SECRET:", !!process.env.JWT_SECRET ? "from env" : "fallback")
-
-    const decoded = jwt.verify(token, JWT_SECRET) as any
-    console.log("[v0] Token verified successfully for user:", decoded.email)
+    console.log("[v0] Supabase user verified successfully:", user.email)
 
     return {
-      id: decoded.sub || decoded.id,
-      email: decoded.email,
-      role: decoded.role || "admin",
+      id: user.id,
+      email: user.email || "",
+      role: user.user_metadata?.role || "user",
     }
   } catch (error) {
-    console.error("[v0] Token verification failed:", error)
+    console.error("[v0] Supabase auth verification failed:", error)
     return null
   }
 }

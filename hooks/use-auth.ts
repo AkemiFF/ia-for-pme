@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import { useCallback, useEffect, useState } from "react"
 
 export type User = {
   id: string
@@ -193,7 +193,9 @@ export async function verifyAuthToken(request: Request): Promise<{ valid: boolea
     const verifyResponse = await fetch(
       `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/auth/custom-login`,
       {
+
         method: "GET",
+        credentials: 'include',
         headers: {
           cookie: cookieHeader || "",
           authorization: authHeader || "",

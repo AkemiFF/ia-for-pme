@@ -1,5 +1,7 @@
-import { createServerClient } from "@supabase/ssr"
-import { type NextRequest, NextResponse } from "next/server"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { type NextRequest, NextResponse } from "next/server";
 
 // Create Supabase client for server-side operations
 function createSupabaseServerClient() {
@@ -33,36 +35,12 @@ export async function POST(req: NextRequest) {
 
     const supabase = createSupabaseServerClient()
 
-    // Use demo credentials if provided, otherwise use Supabase auth
-    const demoEmail = process.env.DEMO_USER_EMAIL
-    const demoPassword = process.env.DEMO_USER_PASSWORD
-
-    if (demoEmail && demoPassword && email === demoEmail && password === demoPassword) {
-      // For demo purposes, create a session manually
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: demoEmail,
-        password: demoPassword,
-      })
-
-      if (error) {
-        return NextResponse.json({ error: "Identifiants invalides" }, { status: 401 })
-      }
-
-      return NextResponse.json({
-        ok: true,
-        user: {
-          id: data.user?.id,
-          email: data.user?.email,
-          role: "admin",
-        },
-      })
-    }
-
     // Regular Supabase authentication
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
+    // console.log("Login result:", { data, error });
 
     if (error) {
       return NextResponse.json({ error: "Identifiants invalides" }, { status: 401 })
@@ -86,17 +64,20 @@ export async function POST(req: NextRequest) {
    GET /api/auth/custom-login
    -> verify session using Supabase Auth
    ----------------------- */
-export async function GET(req: NextRequest) {
+
+export async function GET() {
   try {
-    const supabase = createSupabaseServerClient()
+    const supabase = createRouteHandlerClient({ cookies });
 
     const {
       data: { user },
       error,
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getUser();
+
+    console.log("Get user result:", { user, error });
 
     if (error || !user) {
-      return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
+      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
 
     return NextResponse.json({
@@ -106,13 +87,12 @@ export async function GET(req: NextRequest) {
         email: user.email,
         role: user.user_metadata?.role || "user",
       },
-    })
+    });
   } catch (err: any) {
-    console.error("GET /api/auth/custom-login error:", err)
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
+    console.error("GET /api/auth/custom-login error:", err);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }
-
 /* -----------------------
    DELETE /api/auth/custom-login
    -> logout using Supabase Auth

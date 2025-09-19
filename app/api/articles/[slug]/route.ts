@@ -54,6 +54,8 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
       .eq("id", article.id)
 
     // Get related articles (same category, excluding current)
+    const categoryId = Array.isArray(article.categories) ? article.categories[0]?.id : article.categories?.id
+
     const { data: relatedArticles } = await supabase
       .from("articles")
       .select(`
@@ -67,11 +69,13 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
         featured_image,
         categories(name, slug)
       `)
-      .eq("category_id", article.categories?.id)
+      .eq("category_id", categoryId)
       .eq("published", true)
       .neq("id", article.id)
       .order("published_at", { ascending: false })
       .limit(3)
+
+    const categorySlug = Array.isArray(article.categories) ? article.categories[0]?.slug : article.categories?.slug
 
     // Track analytics
     await supabase.from("analytics_events").insert({
@@ -79,7 +83,7 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
       event_data: {
         article_id: article.id,
         article_slug: slug,
-        category: article.categories?.slug,
+        category: categorySlug,
       },
       user_agent: request.headers.get("user-agent"),
       referrer: request.headers.get("referer"),

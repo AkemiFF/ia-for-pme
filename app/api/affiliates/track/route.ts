@@ -12,11 +12,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Affiliate ID and URL required" }, { status: 400 })
     }
 
-    // Increment click count
+    // First get current count, then increment
+    const { data: currentData, error: fetchError } = await supabase
+      .from("affiliate_resources")
+      .select("click_count")
+      .eq("id", affiliateId)
+      .single()
+
+    if (fetchError) {
+      console.error("Fetch error:", fetchError)
+    }
+
+    const newClickCount = (currentData?.click_count || 0) + 1
+
+    // Update with new count
     const { error: updateError } = await supabase
       .from("affiliate_resources")
       .update({
-        click_count: supabase.raw("click_count + 1"),
+        click_count: newClickCount,
       })
       .eq("id", affiliateId)
 

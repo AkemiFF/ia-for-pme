@@ -6,6 +6,8 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
     const supabase = await createClient()
     const { slug } = params
 
+    console.log(`[v0] Fetching article with slug: ${slug}`)
+
     // Fetch article with category info
     const { data: article, error } = await supabase
       .from("articles")
@@ -38,7 +40,10 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
       .eq("published", true)
       .single()
 
+    console.log(`[v0] Article query result:`, { article, error })
+
     if (error || !article) {
+      console.log(`[v0] Article not found for slug: ${slug}`)
       return NextResponse.json({ error: "Article not found" }, { status: 404 })
     }
 
@@ -85,7 +90,7 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
       relatedArticles: relatedArticles || [],
     })
   } catch (error) {
-    console.error("API error:", error)
+    console.error("[v0] API error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

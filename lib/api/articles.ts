@@ -46,6 +46,16 @@ export interface FilterOptions {
   limit?: number
 }
 
+function getBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    // Client-side: use current origin
+    return window.location.origin
+  }
+
+  // Server-side: use environment variable or localhost
+  return process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+}
+
 // Fetch all articles with optional filters
 export async function fetchArticles(filters: FilterOptions = {}): Promise<{
   articles: Article[]
@@ -68,9 +78,13 @@ export async function fetchArticles(filters: FilterOptions = {}): Promise<{
   if (filters.page) params.append("page", filters.page.toString())
   if (filters.limit) params.append("limit", filters.limit.toString())
 
-  const response = await fetch(`/api/articles?${params.toString()}`)
+  const url = `${getBaseUrl()}/api/articles?${params.toString()}`
+  console.log("[v0] Fetching articles from:", url)
+
+  const response = await fetch(url)
 
   if (!response.ok) {
+    console.log("[v0] Failed to fetch articles, status:", response.status)
     throw new Error("Failed to fetch articles")
   }
 
@@ -109,9 +123,13 @@ export async function fetchArticles(filters: FilterOptions = {}): Promise<{
 
 // Fetch single article by slug
 export async function fetchArticle(slug: string): Promise<Article> {
-  const response = await fetch(`/api/articles/${slug}`)
+  const url = `${getBaseUrl()}/api/articles/${slug}`
+  console.log("[v0] Fetching article from:", url)
+
+  const response = await fetch(url)
 
   if (!response.ok) {
+    console.log("[v0] Failed to fetch article, status:", response.status)
     throw new Error("Failed to fetch article")
   }
 
@@ -145,7 +163,8 @@ export async function fetchArticle(slug: string): Promise<Article> {
 
 // Fetch all categories
 export async function fetchCategories(): Promise<Category[]> {
-  const response = await fetch("/api/categories")
+  const url = `${getBaseUrl()}/api/categories`
+  const response = await fetch(url)
 
   if (!response.ok) {
     throw new Error("Failed to fetch categories")
@@ -171,7 +190,8 @@ export async function fetchCategoryArticles(
   if (filters.limit) params.append("limit", filters.limit.toString())
   if (filters.searchQuery) params.append("search", filters.searchQuery)
 
-  const response = await fetch(`/api/categories/${categorySlug}/articles?${params.toString()}`)
+  const url = `${getBaseUrl()}/api/categories/${categorySlug}/articles?${params.toString()}`
+  const response = await fetch(url)
 
   if (!response.ok) {
     throw new Error("Failed to fetch category articles")
@@ -194,7 +214,8 @@ export async function fetchRecommendedArticles(
   params.append("limit", limit.toString())
   params.append("featured", "true") // Prioritize featured articles
 
-  const response = await fetch(`/api/articles/recommendations?${params.toString()}`)
+  const url = `${getBaseUrl()}/api/articles/recommendations?${params.toString()}`
+  const response = await fetch(url)
 
   if (!response.ok) {
     // Fallback to regular articles if recommendations fail

@@ -54,7 +54,18 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
       .eq("id", article.id)
 
     // Get related articles (same category, excluding current)
-    const categoryId = Array.isArray(article.categories) ? article.categories[0]?.id : article.categories?.id
+    let categoryId: any = null
+    let categorySlug: string | null = null
+
+    if (article.categories) {
+      if (Array.isArray(article.categories) && article.categories.length > 0) {
+        categoryId = article.categories[0].id
+        categorySlug = article.categories[0].slug
+      } else if (!Array.isArray(article.categories)) {
+        categoryId = (article.categories as any).id
+        categorySlug = (article.categories as any).slug
+      }
+    }
 
     const { data: relatedArticles } = await supabase
       .from("articles")
@@ -74,8 +85,6 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
       .neq("id", article.id)
       .order("published_at", { ascending: false })
       .limit(3)
-
-    const categorySlug = Array.isArray(article.categories) ? article.categories[0]?.slug : article.categories?.slug
 
     // Track analytics
     await supabase.from("analytics_events").insert({

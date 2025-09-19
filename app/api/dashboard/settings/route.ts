@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { verifyAuthToken } from "@/lib/auth/verify-token"
-import { neon } from "@neondatabase/serverless"
+import { createClient } from "@supabase/supabase-js"
 
-const sql = neon(process.env.DATABASE_URL!)
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 export async function GET(request: NextRequest) {
   console.log("[v0] GET /api/dashboard/settings - Starting authentication check")
@@ -32,17 +32,21 @@ export async function GET(request: NextRequest) {
       },
     }
 
-    const stats = await sql`
-      SELECT 
-        (SELECT COUNT(*) FROM articles) as total_articles,
-        (SELECT COUNT(*) FROM newsletter_subscribers) as total_subscribers,
-        (SELECT COUNT(*) FROM leads) as total_leads,
-        (SELECT COUNT(*) FROM users) as total_users
-    `
+    const [articlesResult, subscribersResult, leadsResult, usersResult] = await Promise.all([
+      supabase.from("articles").select("id", { count: "exact", head: true }),
+      supabase.from("newsletter_subscribers").select("id", { count: "exact", head: true }),
+      supabase.from("leads").select("id", { count: "exact", head: true }),
+      supabase.from("users").select("id", { count: "exact", head: true }),
+    ])
 
     return NextResponse.json({
       settings,
-      stats: stats[0],
+      stats: {
+        total_articles: articlesResult.count || 0,
+        total_subscribers: subscribersResult.count || 0,
+        total_leads: leadsResult.count || 0,
+        total_users: usersResult.count || 0,
+      },
     })
   } catch (error) {
     console.error("[v0] Database error:", error)

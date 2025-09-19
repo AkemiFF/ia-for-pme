@@ -9,8 +9,14 @@ export async function createClient() {
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY! // Use service role key for server-side operations
 
   if (!supabaseUrl || !supabaseKey) {
+    console.error("[v0] Missing Supabase environment variables:", {
+      hasUrl: !!supabaseUrl,
+      hasKey: !!supabaseKey,
+    })
     throw new Error("Missing Supabase environment variables")
   }
+
+  console.log("[v0] Creating Supabase client with URL:", supabaseUrl.substring(0, 30) + "...")
 
   return createSupabaseClient(supabaseUrl, supabaseKey, {
     auth: {

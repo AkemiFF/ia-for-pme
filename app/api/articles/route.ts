@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { fallbackArticles } from "@/lib/data/fallback-articles"
 
 export async function GET(request: NextRequest) {
   try {
@@ -87,9 +88,59 @@ export async function GET(request: NextRequest) {
     // Execute query with pagination
     const { data: articles, error } = await query.range(offset, offset + limit - 1)
 
-    if (error) {
-      console.error("Database error:", error)
-      return NextResponse.json({ error: "Failed to fetch articles" }, { status: 500 })
+    if (error || !articles || articles.length === 0) {
+      console.log("[v0] Using fallback articles data")
+
+      let filteredArticles = [...fallbackArticles]
+
+      // Apply filters to fallback data
+      if (category) {
+        filteredArticles = filteredArticles.filter((article) => article.category.slug === category)
+      }
+      if (sector && sector !== "Tous secteurs") {
+        filteredArticles = filteredArticles.filter((article) => article.sector === sector)
+      }
+      if (budget) {
+        filteredArticles = filteredArticles.filter((article) => article.budget === budget)
+      }
+      if (level) {
+        filteredArticles = filteredArticles.filter((article) => article.level === level)
+      }
+      if (featured === "true") {
+        filteredArticles = filteredArticles.filter((article) => article.featured)
+      }
+      if (search) {
+        const searchLower = search.toLowerCase()
+        filteredArticles = filteredArticles.filter(
+          (article) =>
+            article.title.toLowerCase().includes(searchLower) || article.excerpt.toLowerCase().includes(searchLower),
+        )
+      }
+      if (tags && tags.length > 0) {
+        filteredArticles = filteredArticles.filter((article) => tags.some((tag) => article.tags.includes(tag)))
+      }
+
+      // Apply pagination to fallback data
+      const total = filteredArticles.length
+      const paginatedArticles = filteredArticles.slice(offset, offset + limit)
+
+      return NextResponse.json({
+        articles: paginatedArticles.map((article) => ({
+          ...article,
+          categories: article.category, // Map category to categories for consistency
+          author_name: article.author.name,
+          author_avatar: article.author.avatar,
+          reading_time: article.read_time,
+        })),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: offset + limit < total,
+          hasPrev: page > 1,
+        },
+      })
     }
 
     try {
@@ -121,6 +172,30 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error("API error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.log("[v0] API error, using fallback articles data")
+
+    const page = Number.parseInt(new URL(request.url).searchParams.get("page") || "1")
+    const limit = Math.min(Number.parseInt(new URL(request.url).searchParams.get("limit") || "12"), 50)
+    const offset = (page - 1) * limit
+
+    const paginatedArticles = fallbackArticles.slice(offset, offset + limit)
+
+    return NextResponse.json({
+      articles: paginatedArticles.map((article) => ({
+        ...article,
+        categories: article.category,
+        author_name: article.author.name,
+        author_avatar: article.author.avatar,
+        reading_time: article.read_time,
+      })),
+      pagination: {
+        page,
+        limit,
+        total: fallbackArticles.length,
+        totalPages: Math.ceil(fallbackArticles.length / limit),
+        hasNext: offset + limit < fallbackArticles.length,
+        hasPrev: page > 1,
+      },
+    })
   }
 }

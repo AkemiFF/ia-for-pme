@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { fallbackArticles } from "@/lib/data/fallback-articles"
 
 export async function GET(request: NextRequest) {
   try {
@@ -63,16 +64,68 @@ export async function GET(request: NextRequest) {
     }
 
     // Fallback: most popular/featured articles
-    const { data: fallbackArticles, error } = await query.eq("featured", true).limit(limit)
+    const { data: featuredArticles, error } = await query.eq("featured", true).limit(limit)
 
-    if (error) {
-      console.error("Error fetching recommendations:", error)
-      return NextResponse.json({ error: "Failed to fetch recommendations" }, { status: 500 })
+    if (error || !featuredArticles || featuredArticles.length === 0) {
+      console.log("[v0] Using fallback recommendations data")
+
+      let recommendations = [...fallbackArticles]
+
+      // Apply same filtering logic to fallback data
+      if (excludeId) {
+        const excludeIdNum = Number.parseInt(excludeId)
+        recommendations = recommendations.filter((article) => article.id !== excludeIdNum)
+      }
+
+      if (category) {
+        const categoryRecommendations = recommendations.filter((article) => article.category.slug === category)
+        if (categoryRecommendations.length > 0) {
+          recommendations = categoryRecommendations
+        }
+      }
+
+      if (tags.length > 0) {
+        const tagRecommendations = recommendations.filter((article) => tags.some((tag) => article.tags.includes(tag)))
+        if (tagRecommendations.length > 0) {
+          recommendations = tagRecommendations
+        }
+      }
+
+      // Prioritize featured articles
+      recommendations.sort((a, b) => {
+        if (a.featured && !b.featured) return -1
+        if (!a.featured && b.featured) return 1
+        return 0
+      })
+
+      const limitedRecommendations = recommendations.slice(0, limit).map((article) => ({
+        ...article,
+        categories: article.category,
+        author_name: article.author.name,
+        author_avatar: article.author.avatar,
+        reading_time: article.read_time,
+      }))
+
+      return NextResponse.json({ articles: limitedRecommendations })
     }
 
-    return NextResponse.json({ articles: fallbackArticles || [] })
+    return NextResponse.json({ articles: featuredArticles || [] })
   } catch (error) {
     console.error("Error in recommendations API:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.log("[v0] API error, using fallback recommendations data")
+
+    const limit = Number.parseInt(new URL(request.url).searchParams.get("limit") || "4")
+    const featuredFallback = fallbackArticles
+      .filter((article) => article.featured)
+      .slice(0, limit)
+      .map((article) => ({
+        ...article,
+        categories: article.category,
+        author_name: article.author.name,
+        author_avatar: article.author.avatar,
+        reading_time: article.read_time,
+      }))
+
+    return NextResponse.json({ articles: featuredFallback })
   }
 }

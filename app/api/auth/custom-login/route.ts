@@ -1,20 +1,27 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-import { type NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr"
+import { cookies } from "next/headers"
+import { type NextRequest, NextResponse } from "next/server"
 
-// Create Supabase client for server-side operations
-function createSupabaseServerClient() {
-  return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+function createSupabaseClient() {
+  const cookieStore = cookies()
+  return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
       get(name: string) {
-        return undefined
+        return cookieStore.get(name)?.value
       },
       set(name: string, value: string, options: any) {
-        // Server-side cookie setting handled by Supabase
+        cookieStore.set({
+          name,
+          value,
+          ...options,
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+        })
       },
       remove(name: string, options: any) {
-        // Server-side cookie removal handled by Supabase
+        cookieStore.set({ name, value: "", ...options })
       },
     },
   })
@@ -33,20 +40,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email et mot de passe requis" }, { status: 400 })
     }
 
-    const supabase = createSupabaseServerClient()
+    const supabase = createSupabaseClient()
 
-    // Regular Supabase authentication
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
-    // console.log("Login result:", { data, error });
+
+    console.log("[v0] Login attempt:", { email, success: !error })
 
     if (error) {
+      console.log("[v0] Login error:", error.message)
       return NextResponse.json({ error: "Identifiants invalides" }, { status: 401 })
     }
 
-    return NextResponse.json({
+    console.log("[v0] Login successful for user:", data.user?.email)
+
+    const response = NextResponse.json({
       ok: true,
       user: {
         id: data.user?.id,
@@ -54,6 +64,8 @@ export async function POST(req: NextRequest) {
         role: data.user?.user_metadata?.role || "user",
       },
     })
+
+    return response
   } catch (err: any) {
     console.error("POST /api/auth/custom-login error:", err)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
@@ -64,20 +76,26 @@ export async function POST(req: NextRequest) {
    GET /api/auth/custom-login
    -> verify session using Supabase Auth
    ----------------------- */
-
 export async function GET() {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const supabase = createSupabaseClient()
 
     const {
       data: { user },
       error,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getUser()
 
-    console.log("Get user result:", { user, error });
+    console.log("[v0] Session check:", { hasUser: !!user, error: error?.message })
 
     if (error || !user) {
-      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+      return NextResponse.json(
+        {
+          ok: true,
+          user: null,
+          message: "Aucune session active",
+        },
+        { status: 200 },
+      )
     }
 
     return NextResponse.json({
@@ -87,21 +105,24 @@ export async function GET() {
         email: user.email,
         role: user.user_metadata?.role || "user",
       },
-    });
+    })
   } catch (err: any) {
-    console.error("GET /api/auth/custom-login error:", err);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    console.error("GET /api/auth/custom-login error:", err)
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }
+
 /* -----------------------
    DELETE /api/auth/custom-login
    -> logout using Supabase Auth
    ----------------------- */
 export async function DELETE(req: NextRequest) {
   try {
-    const supabase = createSupabaseServerClient()
+    const supabase = createSupabaseClient()
 
     const { error } = await supabase.auth.signOut()
+
+    console.log("[v0] Logout attempt:", { success: !error })
 
     if (error) {
       console.error("Logout error:", error)

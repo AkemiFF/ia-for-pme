@@ -16,17 +16,17 @@ export async function GET(request: NextRequest) {
   try {
     const { data: users, error: usersError } = await supabase
       .from("users")
-      .select("id, email, role, created_at, last_login, is_active")
+      .select("id, email, name, role, created_at, updated_at")
       .order("created_at", { ascending: false })
 
     if (usersError) throw usersError
 
-    const { data: stats, error: statsError } = await supabase.from("users").select("id, is_active, created_at")
+    const { data: stats, error: statsError } = await supabase.from("users").select("id, created_at")
 
     if (statsError) throw statsError
 
     const totalUsers = stats?.length || 0
-    const activeUsers = stats?.filter((u) => u.is_active).length || 0
+    // const activeUsers = stats?.filter((u) => u.is_active).length || 0
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     const newUsers30d = stats?.filter((u) => new Date(u.created_at) >= thirtyDaysAgo).length || 0
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       users,
       stats: {
         total_users: totalUsers,
-        active_users: activeUsers,
+        // active_users: activeUsers,
         new_users_30d: newUsers30d,
       },
     })

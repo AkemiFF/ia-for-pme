@@ -1,14 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useAuth } from "@/hooks/use-auth"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Search, UserPlus, Mail, Calendar, Shield } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useAuth } from "@/hooks/use-auth"
+import { Calendar, Mail, Search, Shield, UserPlus } from "lucide-react"
+import { useEffect, useState } from "react"
 
 type User = {
   id: string
@@ -16,7 +16,7 @@ type User = {
   name?: string
   role: string
   created_at: string
-  last_login?: string
+  updated_at?: string
   is_active: boolean
 }
 
@@ -179,7 +179,7 @@ export default function UsersManagementClient() {
                         </Badge>
                       </TableCell>
                       <TableCell>{formatDate(user.created_at)}</TableCell>
-                      <TableCell>{user.last_login ? formatDate(user.last_login) : "Jamais"}</TableCell>
+                      <TableCell>{user.updated_at ? formatDate(user.updated_at) : "Jamais"}</TableCell>
                       <TableCell>
                         <Button variant="outline" size="sm">
                           Modifier

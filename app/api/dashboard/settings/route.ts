@@ -1,6 +1,6 @@
-import { type NextRequest, NextResponse } from "next/server"
 import { verifyAuthToken } from "@/lib/auth/verify-token"
 import { createClient } from "@supabase/supabase-js"
+import { type NextRequest, NextResponse } from "next/server"
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   console.log("[v0] GET /api/dashboard/settings - Starting authentication check")
 
   const authResult = await verifyAuthToken(request)
-  if (!authResult.success) {
+  if (!authResult || !authResult.success) {
     console.log("[v0] GET /api/dashboard/settings - Authentication failed")
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   const authResult = await verifyAuthToken(request)
-  if (!authResult.success) {
+  if (!authResult || !authResult.success) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

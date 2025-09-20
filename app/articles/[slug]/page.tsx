@@ -1,7 +1,7 @@
+import { fetchArticle, type Article } from "@/lib/api/articles"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import ArticleContent from "./ArticleContent"
-import { fetchArticle, type Article } from "@/lib/api/articles"
 
 interface ArticlePageProps {
   params: {
@@ -55,13 +55,13 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
         authors: [article.author.name],
         images: article.featured_image
           ? [
-              {
-                url: article.featured_image,
-                width: 1200,
-                height: 630,
-                alt: article.title,
-              },
-            ]
+            {
+              url: article.featured_image,
+              width: 1200,
+              height: 630,
+              alt: article.title,
+            },
+          ]
           : [],
         url: `${process.env.NEXT_PUBLIC_SITE_URL}/articles/${params.slug}`,
         siteName: "IA pour PME",
@@ -89,7 +89,8 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 export default async function ArticlePage({ params }: ArticlePageProps) {
   try {
     const article = await fetchArticle(params.slug)
-    return <ArticleContent article={article} />
+    // Ensure 'content' is always a string
+    return <ArticleContent article={{ ...article, content: article.content ?? "" }} />
   } catch (error) {
     console.error("Error loading article:", error)
     notFound()

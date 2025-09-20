@@ -1,7 +1,24 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
 import { fallbackArticles } from "@/lib/data/fallback-articles"
-
+import { createClient } from "@/lib/supabase/server"
+import { type NextRequest, NextResponse } from "next/server"
+interface RelatedArticle {
+  id: number
+  title: string
+  slug: string
+  excerpt: string
+  author_name: string
+  published_at: string
+  reading_time: number
+  featured_image: string | null
+  categories: {
+    name: string
+    slug: string
+  } | {
+    id: number
+    name: string
+    slug: string
+  }
+}
 export async function GET(request: NextRequest, { params }: { params: { slug: string } }) {
   try {
     const supabase = await createClient()
@@ -111,7 +128,9 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
       }
     }
 
-    let relatedArticles = []
+
+
+    let relatedArticles: RelatedArticle[] = []
     if (categoryId) {
       const { data: related } = await supabase
         .from("articles")
@@ -132,7 +151,10 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
         .order("published_at", { ascending: false })
         .limit(3)
 
-      relatedArticles = related || []
+      relatedArticles = (related || []).map((item: any) => ({
+        ...item,
+        categories: Array.isArray(item.categories) ? item.categories[0] : item.categories
+      }))
     }
 
     try {

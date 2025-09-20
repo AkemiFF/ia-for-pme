@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr"
 
 export interface AuthUser {
+  success: any
+  name: string
   id: string
   email: string
   role: string
@@ -51,6 +53,8 @@ export async function verifyAuthToken(request: Request): Promise<AuthUser | null
     console.log("[v0] Supabase user verified successfully:", user.email)
 
     return {
+      success: true,
+      name: user.user_metadata?.name || user.email || "",
       id: user.id,
       email: user.email || "",
       role: user.user_metadata?.role || "user",

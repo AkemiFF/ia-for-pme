@@ -1,14 +1,14 @@
 "use client"
 
-import Link from "next/link"
-import { Calendar, Clock, Search, ArrowRight, Sparkles } from "lucide-react"
-import Header from "@/components/Header"
 import Footer from "@/components/Footer"
+import Header from "@/components/Header"
 import AdvancedFilters, { type FilterOptions } from "@/components/filters/AdvancedFilters"
-import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { fetchArticles, fetchRecommendedArticles, type Article } from "@/lib/api/articles"
+import { ArrowRight, Calendar, Clock, Search, Sparkles } from "lucide-react"
+import Link from "next/link"
+import { useEffect, useState } from "react"
 
 export default function ArticlesPageClient() {
   const [articles, setArticles] = useState<Article[]>([])
@@ -22,7 +22,7 @@ export default function ArticlesPageClient() {
     sectors: [],
     budgets: [],
     levels: [],
-    readTime: [5, 30],
+    readTime: [5, 30] as [number, number],
     tags: [],
     searchQuery: "",
   })
@@ -34,6 +34,10 @@ export default function ArticlesPageClient() {
 
       const data = await fetchArticles({
         ...newFilters,
+        readTime: [
+          newFilters.readTime[0] ?? 5,
+          newFilters.readTime[1] ?? 30,
+        ] as [number, number],
         page,
         limit: 12,
       })

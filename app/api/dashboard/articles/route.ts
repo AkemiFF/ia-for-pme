@@ -1,6 +1,6 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
 import { verifyAuthToken } from "@/lib/auth/verify-token"
+import { createClient } from "@/lib/supabase/server"
+import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
   try {
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
         created_at: article.created_at,
         updated_at: article.updated_at,
         category: {
-          name: article.categories?.name || "Non catégorisé",
+          name: article.categories?.[0]?.name || "Non catégorisé",
         },
       })) || []
 
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
         featured_image: cover_image_url,
         published: Boolean(published),
         affiliate_links: affiliateLinksJson,
-        author_name: user.name || "Admin", // Get from authenticated user
+        author_name: user.email || "Admin", // Get from authenticated user
         published_at: published ? new Date().toISOString() : null,
         reading_time: Math.ceil(content.split(" ").length / 200), // Estimate reading time
       })

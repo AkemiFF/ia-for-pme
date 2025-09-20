@@ -1,5 +1,10 @@
--- Create database schema for IA PME website
--- This script creates all necessary tables for the content management system
+-- IA PME Database Setup - Complete Schema and Initial Data
+-- This script creates the complete database structure and essential data
+-- Run this script first to set up your database
+
+-- ============================================================================
+-- SCHEMA CREATION
+-- ============================================================================
 
 -- Categories table
 CREATE TABLE IF NOT EXISTS categories (
@@ -90,7 +95,10 @@ CREATE TABLE IF NOT EXISTS analytics_events (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create indexes for better performance
+-- ============================================================================
+-- INDEXES FOR PERFORMANCE
+-- ============================================================================
+
 CREATE INDEX IF NOT EXISTS idx_articles_slug ON articles(slug);
 CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published, published_at);
 CREATE INDEX IF NOT EXISTS idx_articles_category ON articles(category_id);
@@ -102,7 +110,10 @@ CREATE INDEX IF NOT EXISTS idx_newsletter_active ON newsletter_subscribers(is_ac
 CREATE INDEX IF NOT EXISTS idx_analytics_type ON analytics_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_analytics_created ON analytics_events(created_at);
 
--- Enable Row Level Security (RLS) for public access
+-- ============================================================================
+-- ROW LEVEL SECURITY (RLS)
+-- ============================================================================
+
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE newsletter_subscribers ENABLE ROW LEVEL SECURITY;
@@ -130,6 +141,10 @@ CREATE POLICY "Anyone can submit lead magnets" ON lead_magnets
 CREATE POLICY "Anyone can create analytics events" ON analytics_events
   FOR INSERT WITH CHECK (true);
 
+-- ============================================================================
+-- TRIGGERS AND FUNCTIONS
+-- ============================================================================
+
 -- Update functions for timestamps
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -148,3 +163,27 @@ CREATE TRIGGER update_articles_updated_at BEFORE UPDATE ON articles
 
 CREATE TRIGGER update_affiliate_resources_updated_at BEFORE UPDATE ON affiliate_resources
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================================
+-- INITIAL DATA - CATEGORIES
+-- ============================================================================
+
+INSERT INTO categories (name, slug, description, seo_title, seo_description) VALUES
+('Outils IA', 'outils-ia', 'Découvrez les meilleurs outils d''intelligence artificielle pour votre entreprise', 'Outils IA pour PME et Freelances', 'Comparatifs et guides des meilleurs outils d''IA pour booster votre productivité et automatiser vos tâches.'),
+('Automatisation', 'automatisation', 'Guides pour automatiser vos processus métier avec l''IA', 'Automatisation IA pour Entreprises', 'Apprenez à automatiser vos processus avec l''intelligence artificielle. Guides pratiques et cas d''usage.'),
+('Stratégie Digitale', 'strategie-digitale', 'Stratégies pour intégrer l''IA dans votre transformation digitale', 'Stratégie IA et Transformation Digitale', 'Développez votre stratégie d''adoption de l''IA. Conseils d''experts pour réussir votre transformation.'),
+('Formation & Adoption', 'formation-adoption', 'Ressources pour former vos équipes à l''IA', 'Formation IA en Entreprise', 'Formez vos équipes à l''intelligence artificielle. Programmes, ressources et bonnes pratiques.'),
+('Gestion des Données', 'gestion-donnees', 'Bonnes pratiques pour gérer vos données avec l''IA', 'Gestion des Données et IA', 'Maîtrisez la gestion de vos données pour l''IA. RGPD, sécurité et bonnes pratiques.')
+ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================================================
+-- INITIAL DATA - AFFILIATE RESOURCES
+-- ============================================================================
+
+INSERT INTO affiliate_resources (name, description, url, affiliate_link, category, pricing, featured) VALUES
+('ChatGPT Plus', 'Assistant IA conversationnel avancé pour la rédaction et l''analyse', 'https://chat.openai.com', 'https://chat.openai.com', 'Rédaction IA', '20€/mois', true),
+('Notion AI', 'Workspace intelligent avec IA intégrée pour la productivité', 'https://notion.so', 'https://notion.so', 'Productivité', '10€/mois', true),
+('Canva Pro', 'Design graphique assisté par IA', 'https://canva.com', 'https://canva.com', 'Design', '12€/mois', false),
+('Grammarly Premium', 'Correction et amélioration de texte par IA', 'https://grammarly.com', 'https://grammarly.com', 'Rédaction', '12€/mois', false),
+('Zapier', 'Automatisation de tâches entre applications', 'https://zapier.com', 'https://zapier.com', 'Automatisation', '20€/mois', true)
+ON CONFLICT DO NOTHING;

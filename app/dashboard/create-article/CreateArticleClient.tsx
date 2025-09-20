@@ -1,12 +1,13 @@
 "use client"
 
 import type React from "react"
-import SectionEditor from "@/components/dashboard/SectionEditor"
+import SectionButtonsPanel from "@/components/dashboard/SectionButtonsPanel"
+import ImageUploader from "@/components/dashboard/ImageUploader"
 import type { ArticleSection } from "@/types/sections"
+import { X } from "lucide-react"
 
 import { useAuth } from "@/hooks/use-auth"
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout"
-import MarkdownEditor from "@/components/dashboard/MarkdownEditor"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -17,7 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { Bot, FileText, Save, ArrowLeft, AlertCircle, Sparkles } from "lucide-react"
+import { Save, ArrowLeft, AlertCircle } from "lucide-react"
 
 interface Category {
   id: string
@@ -210,148 +211,103 @@ export default function CreateArticleClient() {
     }
   }
 
+  const addSection = (type: ArticleSection["type"]) => {
+    const newSection: ArticleSection = {
+      id: Date.now().toString(),
+      type,
+      order: form.sections.length,
+      content: {},
+      alignment: "left",
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      sections: [...prev.sections, newSection],
+    }))
+  }
+
+  const updateSection = (sectionId: string, updates: Partial<ArticleSection>) => {
+    setForm((prev) => ({
+      ...prev,
+      sections: prev.sections.map((section) => (section.id === sectionId ? { ...section, ...updates } : section)),
+    }))
+  }
+
+  const removeSection = (sectionId: string) => {
+    setForm((prev) => ({
+      ...prev,
+      sections: prev.sections.filter((section) => section.id !== sectionId),
+    }))
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Créer un Article</h1>
-          <p className="text-gray-600 mt-2">Rédigez et publiez un nouvel article pour votre blog IA PME & Freelances</p>
+          <h1 className="text-3xl font-bold text-white">Créer un Article</h1>
+          <p className="text-gray-400 mt-2">Rédigez et publiez un nouvel article pour votre blog IA PME & Freelances</p>
         </div>
 
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-900">
-              <Bot className="h-5 w-5" />
-              Génération IA
-            </CardTitle>
-            <CardDescription className="text-blue-700">
-              Utilisez l'IA pour générer automatiquement le contenu de votre article
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="ai-title" className="text-blue-800">
-                  Titre (requis pour IA)
-                </Label>
-                <Input
-                  id="ai-title"
-                  value={form.title}
-                  onChange={(e) => handleInputChange("title", e.target.value)}
-                  placeholder="Ex: Comment l'IA transforme les freelances"
-                  className="border-blue-300 focus:border-blue-500"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="ai-keywords" className="text-blue-800">
-                  Mots-clés
-                </Label>
-                <Input
-                  id="ai-keywords"
-                  value={aiKeywords}
-                  onChange={(e) => setAiKeywords(e.target.value)}
-                  placeholder="IA, freelance, PME, automatisation, productivité"
-                  className="border-blue-300 focus:border-blue-500"
-                />
-              </div>
-            </div>
-            <Button
-              type="button"
-              onClick={generateWithAI}
-              disabled={aiLoading || !form.title || !aiKeywords}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {aiLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Génération en cours...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Générer via IA
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Détails de l'article
-            </CardTitle>
+            <CardTitle className="text-white">Détails de base</CardTitle>
+            <CardDescription className="text-gray-400">Informations essentielles de votre article</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Titre *</Label>
+                  <Label htmlFor="title" className="text-gray-200">
+                    Titre *
+                  </Label>
                   <Input
                     id="title"
                     required
                     value={form.title}
                     onChange={(e) => handleInputChange("title", e.target.value)}
+                    className="bg-gray-700 border-gray-600 text-gray-200"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="slug">Slug (auto-généré)</Label>
+                  <Label htmlFor="slug" className="text-gray-200">
+                    Slug (auto-généré)
+                  </Label>
                   <Input
                     id="slug"
                     value={form.slug}
                     onChange={(e) => handleInputChange("slug", e.target.value)}
-                    className="bg-gray-50"
+                    className="bg-gray-600 border-gray-500 text-gray-300"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="excerpt">Extrait</Label>
+                <Label htmlFor="excerpt" className="text-gray-200">
+                  Extrait
+                </Label>
                 <Textarea
                   id="excerpt"
                   rows={3}
                   value={form.excerpt}
                   onChange={(e) => handleInputChange("excerpt", e.target.value)}
                   placeholder="Résumé de l'article (150-160 caractères pour SEO)"
+                  className="bg-gray-700 border-gray-600 text-gray-200"
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Sections de l'article</Label>
-                <SectionEditor
-                  sections={form.sections}
-                  onSectionsChange={(sections) => setForm((prev) => ({ ...prev, sections }))}
-                />
-                <p className="text-xs text-gray-500">
-                  Organisez votre contenu en sections structurées. Le contenu Markdown classique reste disponible en
-                  complément.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Contenu (Markdown) - Optionnel si sections utilisées</Label>
-                <MarkdownEditor
-                  value={form.content}
-                  onChange={(content) => handleInputChange("content", content)}
-                  placeholder="# Titre de l'article\n\nVotre contenu en Markdown..."
-                />
-                <p className="text-xs text-gray-500">
-                  Utilisez l'éditeur avancé avec aperçu en temps réel. Le contenu sera sanitisé côté serveur.
-                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="category">Catégorie *</Label>
+                  <Label htmlFor="category" className="text-gray-200">
+                    Catégorie *
+                  </Label>
                   <Select value={form.category_id} onValueChange={(value) => handleInputChange("category_id", value)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-gray-700 border-gray-600 text-gray-200">
                       <SelectValue placeholder="Sélectionner une catégorie" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-gray-700 border-gray-600">
                       {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
+                        <SelectItem key={category.id} value={category.id} className="text-gray-200">
                           {category.name}
                         </SelectItem>
                       ))}
@@ -360,39 +316,25 @@ export default function CreateArticleClient() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="tags">Tags (séparés par des virgules)</Label>
+                  <Label htmlFor="tags" className="text-gray-200">
+                    Tags (séparés par des virgules)
+                  </Label>
                   <Input
                     id="tags"
                     value={form.tags}
                     onChange={(e) => handleInputChange("tags", e.target.value)}
                     placeholder="IA, PME, automatisation"
+                    className="bg-gray-700 border-gray-600 text-gray-200"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="cover_image_url">URL de l'image de couverture</Label>
-                <Input
-                  id="cover_image_url"
-                  type="url"
-                  value={form.cover_image_url}
-                  onChange={(e) => handleInputChange("cover_image_url", e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="affiliate_links">Liens d'affiliation (JSON)</Label>
-                <Textarea
-                  id="affiliate_links"
-                  rows={4}
-                  value={form.affiliate_links}
-                  onChange={(e) => handleInputChange("affiliate_links", e.target.value)}
-                  className="font-mono text-sm"
-                  placeholder='[{"name": "Outil IA", "url": "https://...", "description": "..."}]'
-                />
-                <p className="text-xs text-gray-500">Format JSON pour les outils recommandés dans l'article</p>
-              </div>
+              <ImageUploader
+                value={form.cover_image_url}
+                onChange={(url) => handleInputChange("cover_image_url", url)}
+                label="Image de couverture"
+                placeholder="https://example.com/image.jpg"
+              />
 
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -400,7 +342,9 @@ export default function CreateArticleClient() {
                   checked={form.published}
                   onCheckedChange={(checked) => handleInputChange("published", !!checked)}
                 />
-                <Label htmlFor="published">Publier immédiatement</Label>
+                <Label htmlFor="published" className="text-gray-200">
+                  Publier immédiatement
+                </Label>
               </div>
 
               {message.text && (
@@ -429,7 +373,7 @@ export default function CreateArticleClient() {
                   type="button"
                   variant="outline"
                   onClick={() => router.push("/dashboard/articles")}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Retour à la liste
@@ -438,6 +382,38 @@ export default function CreateArticleClient() {
             </form>
           </CardContent>
         </Card>
+
+        <SectionButtonsPanel onAddSection={addSection} />
+
+        {form.sections.length > 0 && (
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white">Sections de l'article</CardTitle>
+              <CardDescription className="text-gray-400">
+                Organisez votre contenu en sections structurées
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {form.sections.map((section, index) => (
+                  <div key={section.id} className="p-4 bg-gray-700 rounded-lg border border-gray-600">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-300">
+                        Section {index + 1}: {section.type.replace("_", " ")}
+                      </span>
+                      <Button type="button" variant="destructive" size="sm" onClick={() => removeSection(section.id)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      Configuration de cette section sera disponible dans l'éditeur avancé
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   )

@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import {
   GripVertical,
-  Edit,
   Trash2,
   Plus,
   FileText,
@@ -139,8 +138,11 @@ export default function SectionEditor({ sections, onSectionsChange }: SectionEdi
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Sections de l'article</h3>
-        <Button onClick={() => setShowAddSection(true)} size="sm">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Sections de l'article</h3>
+          <p className="text-sm text-gray-400">Organisez votre contenu en sections structurées</p>
+        </div>
+        <Button onClick={() => setShowAddSection(true)} size="sm" className="bg-blue-600 hover:bg-blue-700">
           <Plus className="h-4 w-4 mr-2" />
           Ajouter une section
         </Button>
@@ -149,27 +151,30 @@ export default function SectionEditor({ sections, onSectionsChange }: SectionEdi
       {/* Existing sections */}
       <div className="space-y-3">
         {sections.map((section, index) => (
-          <Card key={section.id} className="relative">
+          <Card key={section.id} className="bg-gray-800 border-gray-700">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <GripVertical className="h-4 w-4 text-gray-400 cursor-move" />
                   {getSectionIcon(section.section_type)}
                   <div>
-                    <div className="font-medium">
-                      {section.title || SECTION_TYPES.find((t) => t.value === section.section_type)?.label}
+                    <div className="font-medium text-white">
+                      Section {index + 1}: {SECTION_TYPES.find((t) => t.value === section.section_type)?.label}
                     </div>
-                    <div className="text-sm text-gray-500">{getSectionPreview(section)}</div>
+                    {section.title && <div className="text-sm text-gray-400">{section.title}</div>}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline">{section.alignment}</Badge>
+                  <Badge variant="outline" className="border-gray-600 text-gray-300">
+                    {section.alignment}
+                  </Badge>
                   <div className="flex gap-1">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => moveSection(section.id, "up")}
                       disabled={index === 0}
+                      className="text-gray-400 hover:text-white hover:bg-gray-700"
                     >
                       <ChevronUp className="h-4 w-4" />
                     </Button>
@@ -178,34 +183,67 @@ export default function SectionEditor({ sections, onSectionsChange }: SectionEdi
                       size="sm"
                       onClick={() => moveSection(section.id, "down")}
                       disabled={index === sections.length - 1}
+                      className="text-gray-400 hover:text-white hover:bg-gray-700"
                     >
                       <ChevronDown className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setEditingSection(section.id)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => deleteSection(section.id)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteSection(section.id)}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
               </div>
             </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-gray-300">Titre (optionnel)</Label>
+                    <Input
+                      value={section.title || ""}
+                      onChange={(e) => updateSection(section.id, { title: e.target.value })}
+                      placeholder="Titre de la section"
+                      className="bg-gray-900 border-gray-700 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-300">Alignement</Label>
+                    <Select
+                      value={section.alignment}
+                      onValueChange={(value: SectionAlignment) => updateSection(section.id, { alignment: value })}
+                    >
+                      <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-700">
+                        {ALIGNMENT_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value} className="text-white hover:bg-gray-700">
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <SectionContentForm
+                  sectionType={section.section_type}
+                  content={section.content}
+                  onChange={(content) => updateSection(section.id, { content })}
+                />
+              </div>
+            </CardContent>
           </Card>
         ))}
       </div>
 
       {/* Add section form */}
       {showAddSection && <AddSectionForm onAdd={addSection} onCancel={() => setShowAddSection(false)} />}
-
-      {/* Edit section form */}
-      {editingSection && (
-        <EditSectionForm
-          section={sections.find((s) => s.id === editingSection)!}
-          onUpdate={updateSection}
-          onCancel={() => setEditingSection(null)}
-        />
-      )}
     </div>
   )
 }
@@ -229,27 +267,27 @@ function AddSectionForm({
   }
 
   return (
-    <Card className="border-blue-200">
+    <Card className="bg-gray-800 border-blue-500">
       <CardHeader>
-        <CardTitle>Ajouter une section</CardTitle>
+        <CardTitle className="text-white">Ajouter une section</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Type de section</Label>
+              <Label className="text-gray-300">Type de section</Label>
               <Select
                 value={formData.section_type}
                 onValueChange={(value: SectionType) =>
                   setFormData((prev) => ({ ...prev, section_type: value, content: {} }))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-gray-800 border-gray-700">
                   {SECTION_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
+                    <SelectItem key={type.value} value={type.value} className="text-white hover:bg-gray-700">
                       <div className="flex items-center gap-2">
                         <type.icon className="h-4 w-4" />
                         {type.label}
@@ -260,17 +298,17 @@ function AddSectionForm({
               </Select>
             </div>
             <div>
-              <Label>Alignement</Label>
+              <Label className="text-gray-300">Alignement</Label>
               <Select
                 value={formData.alignment}
                 onValueChange={(value: SectionAlignment) => setFormData((prev) => ({ ...prev, alignment: value }))}
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-gray-800 border-gray-700">
                   {ALIGNMENT_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
+                    <SelectItem key={option.value} value={option.value} className="text-white hover:bg-gray-700">
                       {option.label}
                     </SelectItem>
                   ))}
@@ -280,11 +318,12 @@ function AddSectionForm({
           </div>
 
           <div>
-            <Label>Titre (optionnel)</Label>
+            <Label className="text-gray-300">Titre (optionnel)</Label>
             <Input
               value={formData.title || ""}
               onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
               placeholder="Titre de la section"
+              className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
 
@@ -295,8 +334,15 @@ function AddSectionForm({
           />
 
           <div className="flex gap-2">
-            <Button type="submit">Ajouter</Button>
-            <Button type="button" variant="outline" onClick={onCancel}>
+            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+              Ajouter
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
+            >
               Annuler
             </Button>
           </div>
@@ -393,12 +439,13 @@ function SectionContentForm({
     case "texte_markdown":
       return (
         <div>
-          <Label>Contenu Markdown</Label>
+          <Label className="text-gray-300">Contenu Markdown</Label>
           <Textarea
             rows={6}
             value={content.markdown || ""}
             onChange={(e) => onChange({ ...content, markdown: e.target.value })}
-            placeholder="# Titre\n\nVotre contenu en Markdown..."
+            placeholder="# Titre&#10;&#10;Votre contenu en Markdown..."
+            className="bg-gray-900 border-gray-700 text-white"
           />
         </div>
       )
@@ -407,27 +454,30 @@ function SectionContentForm({
       return (
         <div className="space-y-3">
           <div>
-            <Label>URL de l'image</Label>
+            <Label className="text-gray-300">URL de l'image</Label>
             <Input
               value={content.url || ""}
               onChange={(e) => onChange({ ...content, url: e.target.value })}
               placeholder="https://example.com/image.jpg"
+              className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
           <div>
-            <Label>Texte alternatif</Label>
+            <Label className="text-gray-300">Texte alternatif</Label>
             <Input
               value={content.alt_text || ""}
               onChange={(e) => onChange({ ...content, alt_text: e.target.value })}
               placeholder="Description de l'image"
+              className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
           <div>
-            <Label>Légende (optionnel)</Label>
+            <Label className="text-gray-300">Légende (optionnel)</Label>
             <Input
               value={content.caption || ""}
               onChange={(e) => onChange({ ...content, caption: e.target.value })}
               placeholder="Légende de l'image"
+              className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
         </div>
@@ -437,19 +487,21 @@ function SectionContentForm({
       return (
         <div className="space-y-3">
           <div>
-            <Label>URL de la vidéo</Label>
+            <Label className="text-gray-300">URL de la vidéo</Label>
             <Input
               value={content.url || ""}
               onChange={(e) => onChange({ ...content, url: e.target.value })}
-              placeholder="https://youtube.com/watch?v=..."
+              placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..."
+              className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
           <div>
-            <Label>Légende (optionnel)</Label>
+            <Label className="text-gray-300">Légende (optionnel)</Label>
             <Input
               value={content.caption || ""}
               onChange={(e) => onChange({ ...content, caption: e.target.value })}
               placeholder="Description de la vidéo"
+              className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
         </div>
@@ -459,51 +511,129 @@ function SectionContentForm({
       return (
         <div className="space-y-3">
           <div>
-            <Label>Nom du produit</Label>
+            <Label className="text-gray-300">Nom du produit</Label>
             <Input
               value={content.product_name || ""}
               onChange={(e) => onChange({ ...content, product_name: e.target.value })}
               placeholder="Nom du produit"
+              className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
           <div>
-            <Label>URL du produit</Label>
+            <Label className="text-gray-300">URL du produit</Label>
             <Input
               value={content.product_url || ""}
               onChange={(e) => onChange({ ...content, product_url: e.target.value })}
               placeholder="https://example.com/product"
+              className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
           <div>
-            <Label>Lien d'affiliation</Label>
+            <Label className="text-gray-300">Lien d'affiliation</Label>
             <Input
               value={content.affiliate_url || ""}
               onChange={(e) => onChange({ ...content, affiliate_url: e.target.value })}
               placeholder="https://affiliate.com/..."
+              className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
           <div>
-            <Label>Image du produit (optionnel)</Label>
+            <Label className="text-gray-300">Image du produit (optionnel)</Label>
             <Input
               value={content.image_url || ""}
               onChange={(e) => onChange({ ...content, image_url: e.target.value })}
               placeholder="https://example.com/product-image.jpg"
+              className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
           <div>
-            <Label>Prix (optionnel)</Label>
+            <Label className="text-gray-300">Prix (optionnel)</Label>
             <Input
               value={content.price || ""}
               onChange={(e) => onChange({ ...content, price: e.target.value })}
               placeholder="29€/mois"
+              className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
           <div>
-            <Label>Description</Label>
+            <Label className="text-gray-300">Description</Label>
             <Textarea
               value={content.description || ""}
               onChange={(e) => onChange({ ...content, description: e.target.value })}
               placeholder="Description du produit"
+              className="bg-gray-900 border-gray-700 text-white"
+            />
+          </div>
+        </div>
+      )
+
+    case "fichier":
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-gray-300">Nom du fichier</Label>
+            <Input
+              value={content.file_name || ""}
+              onChange={(e) => onChange({ ...content, file_name: e.target.value })}
+              placeholder="document.pdf"
+              className="bg-gray-900 border-gray-700 text-white"
+            />
+          </div>
+          <div>
+            <Label className="text-gray-300">URL du fichier</Label>
+            <Input
+              value={content.file_url || ""}
+              onChange={(e) => onChange({ ...content, file_url: e.target.value })}
+              placeholder="https://example.com/document.pdf"
+              className="bg-gray-900 border-gray-700 text-white"
+            />
+          </div>
+          <div>
+            <Label className="text-gray-300">Taille du fichier (optionnel)</Label>
+            <Input
+              value={content.file_size || ""}
+              onChange={(e) => onChange({ ...content, file_size: e.target.value })}
+              placeholder="2.5 MB"
+              className="bg-gray-900 border-gray-700 text-white"
+            />
+          </div>
+          <div>
+            <Label className="text-gray-300">Description</Label>
+            <Textarea
+              value={content.description || ""}
+              onChange={(e) => onChange({ ...content, description: e.target.value })}
+              placeholder="Description du fichier"
+              className="bg-gray-900 border-gray-700 text-white"
+            />
+          </div>
+        </div>
+      )
+
+    case "galerie":
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-gray-300">Images (URLs séparées par des virgules)</Label>
+            <Textarea
+              value={content.images?.join(", ") || ""}
+              onChange={(e) => {
+                const urls = e.target.value
+                  .split(",")
+                  .map((url) => url.trim())
+                  .filter((url) => url)
+                onChange({ ...content, images: urls })
+              }}
+              placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
+              className="bg-gray-900 border-gray-700 text-white"
+            />
+          </div>
+          <div>
+            <Label className="text-gray-300">Légende de la galerie (optionnel)</Label>
+            <Input
+              value={content.caption || ""}
+              onChange={(e) => onChange({ ...content, caption: e.target.value })}
+              placeholder="Description de la galerie"
+              className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
         </div>
@@ -513,27 +643,30 @@ function SectionContentForm({
       return (
         <div className="space-y-3">
           <div>
-            <Label>Citation</Label>
+            <Label className="text-gray-300">Citation</Label>
             <Textarea
               value={content.quote || ""}
               onChange={(e) => onChange({ ...content, quote: e.target.value })}
               placeholder="Votre citation..."
+              className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
           <div>
-            <Label>Auteur (optionnel)</Label>
+            <Label className="text-gray-300">Auteur (optionnel)</Label>
             <Input
               value={content.author || ""}
               onChange={(e) => onChange({ ...content, author: e.target.value })}
               placeholder="Nom de l'auteur"
+              className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
           <div>
-            <Label>Source (optionnel)</Label>
+            <Label className="text-gray-300">Source (optionnel)</Label>
             <Input
               value={content.source || ""}
               onChange={(e) => onChange({ ...content, source: e.target.value })}
               placeholder="Source de la citation"
+              className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
         </div>
@@ -543,29 +676,31 @@ function SectionContentForm({
       return (
         <div className="space-y-3">
           <div>
-            <Label>Code</Label>
+            <Label className="text-gray-300">Code</Label>
             <Textarea
               rows={8}
               value={content.code || ""}
               onChange={(e) => onChange({ ...content, code: e.target.value })}
               placeholder="Votre code..."
-              className="font-mono"
+              className="font-mono bg-gray-900 border-gray-700 text-white"
             />
           </div>
           <div>
-            <Label>Langage (optionnel)</Label>
+            <Label className="text-gray-300">Langage (optionnel)</Label>
             <Input
               value={content.language || ""}
               onChange={(e) => onChange({ ...content, language: e.target.value })}
               placeholder="javascript, python, css..."
+              className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
           <div>
-            <Label>Nom du fichier (optionnel)</Label>
+            <Label className="text-gray-300">Nom du fichier (optionnel)</Label>
             <Input
               value={content.filename || ""}
               onChange={(e) => onChange({ ...content, filename: e.target.value })}
               placeholder="example.js"
+              className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
         </div>
@@ -574,7 +709,7 @@ function SectionContentForm({
     default:
       return (
         <div>
-          <Label>Contenu</Label>
+          <Label className="text-gray-300">Configuration personnalisée</Label>
           <Textarea
             value={JSON.stringify(content, null, 2)}
             onChange={(e) => {
@@ -585,6 +720,7 @@ function SectionContentForm({
               }
             }}
             placeholder="Contenu JSON"
+            className="bg-gray-900 border-gray-700 text-white font-mono"
           />
         </div>
       )

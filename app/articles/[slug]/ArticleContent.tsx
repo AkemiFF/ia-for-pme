@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import DOMPurify from "dompurify"
+import SectionRenderer from "@/components/article/SectionRenderer"
+import type { ArticleSection } from "@/types/sections"
 
 interface Article {
   id: number
@@ -9,6 +11,7 @@ interface Article {
   title: string
   excerpt: string
   content: string
+  sections?: ArticleSection[] // Added sections support
   category: {
     id: number
     name: string
@@ -315,13 +318,32 @@ export default function ArticleContent({ article }: { article: Article }) {
         </header>
 
         {/* Article Content */}
-        <div className="prose prose-lg max-w-none">
-          {renderedContent ? (
-            <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
-          ) : (
-            <div className="text-gray-500 italic">Chargement du contenu...</div>
-          )}
-        </div>
+        {article.sections && article.sections.length > 0 ? (
+          <div className="article-sections">
+            <SectionRenderer sections={article.sections} />
+
+            {/* Traditional content as fallback/additional content */}
+            {article.content && (
+              <div className="prose prose-lg max-w-none mt-12 pt-8 border-t border-gray-200">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Contenu additionnel</h3>
+                {renderedContent ? (
+                  <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
+                ) : (
+                  <div className="text-gray-500 italic">Chargement du contenu...</div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Traditional Article Content */
+          <div className="prose prose-lg max-w-none">
+            {renderedContent ? (
+              <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
+            ) : (
+              <div className="text-gray-500 italic">Chargement du contenu...</div>
+            )}
+          </div>
+        )}
 
         {/* Insert Ad Slots */}
         <div className="ad-slots">

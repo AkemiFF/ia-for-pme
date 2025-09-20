@@ -1,6 +1,8 @@
 "use client"
 
 import type React from "react"
+import SectionEditor from "@/components/dashboard/SectionEditor"
+import type { ArticleSection } from "@/types/sections"
 
 import { useAuth } from "@/hooks/use-auth"
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout"
@@ -33,6 +35,7 @@ interface ArticleForm {
   cover_image_url: string
   published: boolean
   affiliate_links: string
+  sections: ArticleSection[]
 }
 
 export default function CreateArticleClient() {
@@ -47,6 +50,7 @@ export default function CreateArticleClient() {
     cover_image_url: "",
     published: false,
     affiliate_links: "",
+    sections: [],
   })
 
   const [categories, setCategories] = useState<Category[]>([])
@@ -158,7 +162,7 @@ export default function CreateArticleClient() {
     setMessage({ type: "", text: "" })
 
     // Basic validation
-    if (!form.title || !form.content || !form.category_id) {
+    if (!form.title || (!form.content && form.sections.length === 0) || !form.category_id) {
       setMessage({ type: "error", text: "Veuillez remplir tous les champs obligatoires" })
       setLoading(false)
       return
@@ -167,7 +171,10 @@ export default function CreateArticleClient() {
     try {
       const response = await fetchWithAuth("/api/dashboard/articles", {
         method: "POST",
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          sections: form.sections,
+        }),
       })
 
       if (!response.ok) {
@@ -191,6 +198,7 @@ export default function CreateArticleClient() {
         cover_image_url: "",
         published: false,
         affiliate_links: "",
+        sections: [],
       })
     } catch (error) {
       setMessage({
@@ -311,7 +319,19 @@ export default function CreateArticleClient() {
               </div>
 
               <div className="space-y-2">
-                <Label>Contenu (Markdown) *</Label>
+                <Label>Sections de l'article</Label>
+                <SectionEditor
+                  sections={form.sections}
+                  onSectionsChange={(sections) => setForm((prev) => ({ ...prev, sections }))}
+                />
+                <p className="text-xs text-gray-500">
+                  Organisez votre contenu en sections structurées. Le contenu Markdown classique reste disponible en
+                  complément.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Contenu (Markdown) - Optionnel si sections utilisées</Label>
                 <MarkdownEditor
                   value={form.content}
                   onChange={(content) => handleInputChange("content", content)}

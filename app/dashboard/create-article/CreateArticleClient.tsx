@@ -214,12 +214,18 @@ export default function CreateArticleClient() {
   const addSection = (type: ArticleSection["type"]) => {
     const newSection: ArticleSection = {
       id: Date.now().toString(),
-      type,
-      order: form.sections.length,
-      content: {},
+      article_id: "",
+      section_type: type, // Changed from 'type' to 'section_type'
+      order_index: form.sections.length, // Changed from 'order' to 'order_index'
+      title: "",
       alignment: "left",
+      content: {},
+      metadata: {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     }
 
+    console.log("[v0] Adding section:", newSection)
     setForm((prev) => ({
       ...prev,
       sections: [...prev.sections, newSection],
@@ -387,14 +393,11 @@ export default function CreateArticleClient() {
 
         {form.sections.length > 0 && (
           <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">Sections de l'article</CardTitle>
-              <CardDescription className="text-gray-400">
-                Organisez votre contenu en sections structurées
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <SectionEditor sections={form.sections} onUpdateSection={updateSection} onRemoveSection={removeSection} />
+            <CardContent className="p-6">
+              <SectionEditor
+                sections={form.sections}
+                onSectionsChange={(sections) => setForm((prev) => ({ ...prev, sections }))}
+              />
             </CardContent>
           </Card>
         )}

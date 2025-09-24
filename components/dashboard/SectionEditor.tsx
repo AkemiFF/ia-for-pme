@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   GripVertical,
   Trash2,
@@ -26,6 +27,7 @@ import {
   ChevronDown,
 } from "lucide-react"
 import type { ArticleSection, SectionType, SectionAlignment, SectionFormData } from "@/types/sections"
+import FileUpload from "./FileUpload"
 
 interface SectionEditorProps {
   sections: ArticleSection[]
@@ -106,14 +108,16 @@ export default function SectionEditor({ sections, onSectionsChange }: SectionEdi
     onSectionsChange(reorderedSections)
   }
 
-  const getSectionIcon = (type: SectionType) => {
+  const getSectionIcon = (section: ArticleSection) => {
+    const type = section.section_type || (section as any).type // Handle both structures
     const sectionType = SECTION_TYPES.find((t) => t.value === type)
     const Icon = sectionType?.icon || FileText
     return <Icon className="h-4 w-4" />
   }
 
   const getSectionPreview = (section: ArticleSection) => {
-    switch (section.section_type) {
+    const type = section.section_type || (section as any).type // Handle both structures
+    switch (type) {
       case "texte_markdown":
         return section.content.markdown?.substring(0, 100) + "..." || "Contenu markdown"
       case "image":
@@ -126,7 +130,7 @@ export default function SectionEditor({ sections, onSectionsChange }: SectionEdi
         return section.content.file_name || "Fichier"
       case "galerie":
         return `${section.content.images?.length || 0} images`
-      case "citation":
+      case "citations":
         return section.content.quote?.substring(0, 50) + "..." || "Citation"
       case "code":
         return `Code ${section.content.language || ""}`
@@ -156,10 +160,11 @@ export default function SectionEditor({ sections, onSectionsChange }: SectionEdi
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <GripVertical className="h-4 w-4 text-gray-400 cursor-move" />
-                  {getSectionIcon(section.section_type)}
+                  {getSectionIcon(section)}
                   <div>
                     <div className="font-medium text-white">
-                      Section {index + 1}: {SECTION_TYPES.find((t) => t.value === section.section_type)?.label}
+                      Section {index + 1}:{" "}
+                      {SECTION_TYPES.find((t) => t.value === (section.section_type || (section as any).type))?.label}
                     </div>
                     {section.title && <div className="text-sm text-gray-400">{section.title}</div>}
                   </div>
@@ -231,8 +236,9 @@ export default function SectionEditor({ sections, onSectionsChange }: SectionEdi
                   </div>
                 </div>
 
+                {/* Handle both structures */}
                 <SectionContentForm
-                  sectionType={section.section_type}
+                  sectionType={section.section_type || (section as any).type}
                   content={section.content}
                   onChange={(content) => updateSection(section.id, { content })}
                 />
@@ -435,6 +441,8 @@ function SectionContentForm({
   content: Record<string, any>
   onChange: (content: Record<string, any>) => void
 }) {
+  console.log("[v0] SectionContentForm rendering:", { sectionType, content })
+
   switch (sectionType) {
     case "texte_markdown":
       return (
@@ -452,16 +460,49 @@ function SectionContentForm({
 
     case "image":
       return (
-        <div className="space-y-3">
-          <div>
-            <Label className="text-gray-300">URL de l'image</Label>
-            <Input
-              value={content.url || ""}
-              onChange={(e) => onChange({ ...content, url: e.target.value })}
-              placeholder="https://example.com/image.jpg"
-              className="bg-gray-900 border-gray-700 text-white"
-            />
-          </div>
+        <div className="space-y-4">
+          <Tabs defaultValue="upload" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-gray-800">
+              <TabsTrigger value="upload" className="data-[state=active]:bg-gray-700">
+                Upload
+              </TabsTrigger>
+              <TabsTrigger value="url" className="data-[state=active]:bg-gray-700">
+                URL
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="upload" className="space-y-3">
+              <div>
+                <Label className="text-gray-300">Importer une image</Label>
+                <FileUpload
+                  type="image"
+                  accept="image/*"
+                  maxSize={5}
+                  currentUrl={content.url}
+                  onFileUploaded={(fileData) => {
+                    onChange({
+                      ...content,
+                      url: fileData.url,
+                      alt_text: content.alt_text || fileData.filename.split(".")[0],
+                    })
+                  }}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="url" className="space-y-3">
+              <div>
+                <Label className="text-gray-300">URL de l'image</Label>
+                <Input
+                  value={content.url || ""}
+                  onChange={(e) => onChange({ ...content, url: e.target.value })}
+                  placeholder="https://example.com/image.jpg"
+                  className="bg-gray-900 border-gray-700 text-white"
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+
           <div>
             <Label className="text-gray-300">Texte alternatif</Label>
             <Input
@@ -492,6 +533,25 @@ function SectionContentForm({
               value={content.url || ""}
               onChange={(e) => onChange({ ...content, url: e.target.value })}
               placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..."
+              className="bg-gray-900 border-gray-700 text-white"
+            />
+          </div>
+          <div>
+            <Label className="text-gray-300">Miniature (optionnel)</Label>
+            <Input
+              value={content.thumbnail || ""}
+              onChange={(e) => onChange({ ...content, thumbnail: e.target.value })}
+              placeholder="https://example.com/thumbnail.jpg"
+              className="bg-gray-900 border-gray-700 text-white"
+            />
+          </div>
+          <div>
+            <Label className="text-gray-300">Durée en secondes (optionnel)</Label>
+            <Input
+              type="number"
+              value={content.duration || ""}
+              onChange={(e) => onChange({ ...content, duration: Number.parseInt(e.target.value) || undefined })}
+              placeholder="120"
               className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
@@ -569,72 +629,195 @@ function SectionContentForm({
 
     case "fichier":
       return (
-        <div className="space-y-3">
-          <div>
-            <Label className="text-gray-300">Nom du fichier</Label>
-            <Input
-              value={content.file_name || ""}
-              onChange={(e) => onChange({ ...content, file_name: e.target.value })}
-              placeholder="document.pdf"
-              className="bg-gray-900 border-gray-700 text-white"
-            />
-          </div>
-          <div>
-            <Label className="text-gray-300">URL du fichier</Label>
-            <Input
-              value={content.file_url || ""}
-              onChange={(e) => onChange({ ...content, file_url: e.target.value })}
-              placeholder="https://example.com/document.pdf"
-              className="bg-gray-900 border-gray-700 text-white"
-            />
-          </div>
-          <div>
-            <Label className="text-gray-300">Taille du fichier (optionnel)</Label>
-            <Input
-              value={content.file_size || ""}
-              onChange={(e) => onChange({ ...content, file_size: e.target.value })}
-              placeholder="2.5 MB"
-              className="bg-gray-900 border-gray-700 text-white"
-            />
-          </div>
-          <div>
-            <Label className="text-gray-300">Description</Label>
-            <Textarea
-              value={content.description || ""}
-              onChange={(e) => onChange({ ...content, description: e.target.value })}
-              placeholder="Description du fichier"
-              className="bg-gray-900 border-gray-700 text-white"
-            />
+        <div className="space-y-4">
+          <Tabs defaultValue="upload" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-gray-800">
+              <TabsTrigger value="upload" className="data-[state=active]:bg-gray-700">
+                Upload
+              </TabsTrigger>
+              <TabsTrigger value="url" className="data-[state=active]:bg-gray-700">
+                URL
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="upload" className="space-y-3">
+              <div>
+                <Label className="text-gray-300">Importer un fichier</Label>
+                <FileUpload
+                  type="file"
+                  maxSize={50}
+                  currentUrl={content.file_url}
+                  onFileUploaded={(fileData) => {
+                    onChange({
+                      ...content,
+                      file_url: fileData.url,
+                      file_name: fileData.filename,
+                      file_size: fileData.size,
+                      file_type: fileData.type,
+                    })
+                  }}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="url" className="space-y-3">
+              <div>
+                <Label className="text-gray-300">URL du fichier</Label>
+                <Input
+                  value={content.file_url || ""}
+                  onChange={(e) => onChange({ ...content, file_url: e.target.value })}
+                  placeholder="https://example.com/document.pdf"
+                  className="bg-gray-900 border-gray-700 text-white"
+                />
+              </div>
+              <div>
+                <Label className="text-gray-300">Nom du fichier</Label>
+                <Input
+                  value={content.file_name || ""}
+                  onChange={(e) => onChange({ ...content, file_name: e.target.value })}
+                  placeholder="document.pdf"
+                  className="bg-gray-900 border-gray-700 text-white"
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-gray-300">Taille du fichier en octets (optionnel)</Label>
+              <Input
+                type="number"
+                value={content.file_size || ""}
+                onChange={(e) => onChange({ ...content, file_size: Number.parseInt(e.target.value) || undefined })}
+                placeholder="2500000"
+                className="bg-gray-900 border-gray-700 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-gray-300">Type de fichier</Label>
+              <Input
+                value={content.file_type || ""}
+                onChange={(e) => onChange({ ...content, file_type: e.target.value })}
+                placeholder="application/pdf"
+                className="bg-gray-900 border-gray-700 text-white"
+              />
+            </div>
           </div>
         </div>
       )
 
     case "galerie":
+      const images = content.images || []
       return (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div>
-            <Label className="text-gray-300">Images (URLs séparées par des virgules)</Label>
-            <Textarea
-              value={content.images?.join(", ") || ""}
-              onChange={(e) => {
-                const urls = e.target.value
-                  .split(",")
-                  .map((url) => url.trim())
-                  .filter((url) => url)
-                onChange({ ...content, images: urls })
-              }}
-              placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
-              className="bg-gray-900 border-gray-700 text-white"
-            />
-          </div>
-          <div>
-            <Label className="text-gray-300">Légende de la galerie (optionnel)</Label>
-            <Input
-              value={content.caption || ""}
-              onChange={(e) => onChange({ ...content, caption: e.target.value })}
-              placeholder="Description de la galerie"
-              className="bg-gray-900 border-gray-700 text-white"
-            />
+            <Label className="text-gray-300">Images de la galerie</Label>
+            <div className="space-y-3">
+              {images.map((image: any, index: number) => (
+                <div key={index} className="p-4 bg-gray-800 rounded border border-gray-600">
+                  <div className="space-y-3">
+                    <Tabs defaultValue="upload" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2 bg-gray-700">
+                        <TabsTrigger value="upload" className="data-[state=active]:bg-gray-600">
+                          Upload
+                        </TabsTrigger>
+                        <TabsTrigger value="url" className="data-[state=active]:bg-gray-600">
+                          URL
+                        </TabsTrigger>
+                      </TabsList>
+
+                      <TabsContent value="upload">
+                        <FileUpload
+                          type="image"
+                          accept="image/*"
+                          maxSize={5}
+                          currentUrl={image.url}
+                          onFileUploaded={(fileData) => {
+                            const newImages = [...images]
+                            newImages[index] = {
+                              ...image,
+                              url: fileData.url,
+                              alt_text: image.alt_text || fileData.filename.split(".")[0],
+                            }
+                            onChange({ ...content, images: newImages })
+                          }}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="url">
+                        <Input
+                          value={image.url || ""}
+                          onChange={(e) => {
+                            const newImages = [...images]
+                            newImages[index] = { ...image, url: e.target.value }
+                            onChange({ ...content, images: newImages })
+                          }}
+                          placeholder="https://example.com/image.jpg"
+                          className="bg-gray-900 border-gray-700 text-white"
+                        />
+                      </TabsContent>
+                    </Tabs>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-sm text-gray-400">Texte alternatif</Label>
+                        <Input
+                          value={image.alt_text || ""}
+                          onChange={(e) => {
+                            const newImages = [...images]
+                            newImages[index] = { ...image, alt_text: e.target.value }
+                            onChange({ ...content, images: newImages })
+                          }}
+                          placeholder="Description"
+                          className="bg-gray-900 border-gray-700 text-white text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm text-gray-400">Légende</Label>
+                        <Input
+                          value={image.caption || ""}
+                          onChange={(e) => {
+                            const newImages = [...images]
+                            newImages[index] = { ...image, caption: e.target.value }
+                            onChange({ ...content, images: newImages })
+                          }}
+                          placeholder="Légende (optionnel)"
+                          className="bg-gray-900 border-gray-700 text-white text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newImages = images.filter((_: any, i: number) => i !== index)
+                          onChange({ ...content, images: newImages })
+                        }}
+                        className="border-red-600 text-red-400 hover:bg-red-900/20"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Supprimer
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  const newImages = [...images, { url: "", alt_text: "", caption: "" }]
+                  onChange({ ...content, images: newImages })
+                }}
+                className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Ajouter une image
+              </Button>
+            </div>
           </div>
         </div>
       )
@@ -685,28 +868,31 @@ function SectionContentForm({
               className="font-mono bg-gray-900 border-gray-700 text-white"
             />
           </div>
-          <div>
-            <Label className="text-gray-300">Langage (optionnel)</Label>
-            <Input
-              value={content.language || ""}
-              onChange={(e) => onChange({ ...content, language: e.target.value })}
-              placeholder="javascript, python, css..."
-              className="bg-gray-900 border-gray-700 text-white"
-            />
-          </div>
-          <div>
-            <Label className="text-gray-300">Nom du fichier (optionnel)</Label>
-            <Input
-              value={content.filename || ""}
-              onChange={(e) => onChange({ ...content, filename: e.target.value })}
-              placeholder="example.js"
-              className="bg-gray-900 border-gray-700 text-white"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-gray-300">Langage (optionnel)</Label>
+              <Input
+                value={content.language || ""}
+                onChange={(e) => onChange({ ...content, language: e.target.value })}
+                placeholder="javascript, python, css..."
+                className="bg-gray-900 border-gray-700 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-gray-300">Nom du fichier (optionnel)</Label>
+              <Input
+                value={content.filename || ""}
+                onChange={(e) => onChange({ ...content, filename: e.target.value })}
+                placeholder="example.js"
+                className="bg-gray-900 border-gray-700 text-white"
+              />
+            </div>
           </div>
         </div>
       )
 
     default:
+      console.log("[v0] Unknown section type:", sectionType)
       return (
         <div>
           <Label className="text-gray-300">Configuration personnalisée</Label>

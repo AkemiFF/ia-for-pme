@@ -3,8 +3,8 @@
 import type React from "react"
 import SectionButtonsPanel from "@/components/dashboard/SectionButtonsPanel"
 import ImageUploader from "@/components/dashboard/ImageUploader"
+import SectionEditor from "@/components/dashboard/SectionEditor"
 import type { ArticleSection } from "@/types/sections"
-import { X } from "lucide-react"
 
 import { useAuth } from "@/hooks/use-auth"
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout"
@@ -394,23 +394,7 @@ export default function CreateArticleClient() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {form.sections.map((section, index) => (
-                  <div key={section.id} className="p-4 bg-gray-700 rounded-lg border border-gray-600">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-300">
-                        Section {index + 1}: {section.type.replace("_", " ")}
-                      </span>
-                      <Button type="button" variant="destructive" size="sm" onClick={() => removeSection(section.id)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <p className="text-xs text-gray-400">
-                      Configuration de cette section sera disponible dans l'éditeur avancé
-                    </p>
-                  </div>
-                ))}
-              </div>
+              <SectionEditor sections={form.sections} onUpdateSection={updateSection} onRemoveSection={removeSection} />
             </CardContent>
           </Card>
         )}

@@ -24,16 +24,25 @@ export default function DashboardClient() {
     views: 0,
   })
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    if (isAuthenticated) {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (isAuthenticated && mounted) {
       loadStats()
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, mounted])
 
   const loadStats = async () => {
     try {
       setLoading(true)
+      console.log(
+        "[v0] Fetching articles from:",
+        `${process.env.NEXT_PUBLIC_API_URL || window.location.origin}/api/articles?page=1&limit=6`,
+      )
       const [articlesRes, subscribersRes, leadsRes] = await Promise.all([
         fetchWithAuth("/api/articles"),
         fetchWithAuth("/api/newsletter/subscribers"),
@@ -55,6 +64,10 @@ export default function DashboardClient() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (!mounted) {
+    return null
   }
 
   return (

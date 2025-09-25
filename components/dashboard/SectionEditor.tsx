@@ -453,8 +453,11 @@ function SectionContentForm({
             value={content.markdown || ""}
             onChange={(e) => onChange({ ...content, markdown: e.target.value })}
             placeholder="# Titre&#10;&#10;Votre contenu en Markdown..."
-            className="bg-gray-900 border-gray-700 text-white"
+            className="bg-gray-900 border-gray-700 text-white font-mono"
           />
+          <div className="text-xs text-gray-500 mt-1">
+            Utilisez la syntaxe Markdown: **gras**, *italique*, # Titre, etc.
+          </div>
         </div>
       )
 
@@ -503,21 +506,39 @@ function SectionContentForm({
             </TabsContent>
           </Tabs>
 
+          {content.url && (
+            <div className="mt-3">
+              <Label className="text-gray-300 text-sm">Aperçu</Label>
+              <div className="mt-1 p-2 bg-gray-900 rounded border border-gray-700">
+                <img
+                  src={content.url || "/placeholder.svg"}
+                  alt={content.alt_text || "Preview"}
+                  className="max-w-full h-32 object-contain rounded"
+                  onError={(e) => {
+                    e.currentTarget.src = "/placeholder.svg?height=128&width=200"
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           <div>
-            <Label className="text-gray-300">Texte alternatif</Label>
+            <Label className="text-gray-300">Texte alternatif *</Label>
             <Input
               value={content.alt_text || ""}
               onChange={(e) => onChange({ ...content, alt_text: e.target.value })}
-              placeholder="Description de l'image"
+              placeholder="Description de l'image pour l'accessibilité"
               className="bg-gray-900 border-gray-700 text-white"
+              required
             />
+            <div className="text-xs text-gray-500 mt-1">Important pour l'accessibilité et le SEO</div>
           </div>
           <div>
             <Label className="text-gray-300">Légende (optionnel)</Label>
             <Input
               value={content.caption || ""}
               onChange={(e) => onChange({ ...content, caption: e.target.value })}
-              placeholder="Légende de l'image"
+              placeholder="Légende affichée sous l'image"
               className="bg-gray-900 border-gray-700 text-white"
             />
           </div>
@@ -528,13 +549,17 @@ function SectionContentForm({
       return (
         <div className="space-y-3">
           <div>
-            <Label className="text-gray-300">URL de la vidéo</Label>
+            <Label className="text-gray-300">URL de la vidéo *</Label>
             <Input
               value={content.url || ""}
               onChange={(e) => onChange({ ...content, url: e.target.value })}
               placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..."
               className="bg-gray-900 border-gray-700 text-white"
+              required
             />
+            <div className="text-xs text-gray-500 mt-1">
+              Supporte YouTube, Vimeo, et liens directs vers des fichiers vidéo
+            </div>
           </div>
           <div>
             <Label className="text-gray-300">Miniature (optionnel)</Label>
@@ -571,30 +596,33 @@ function SectionContentForm({
       return (
         <div className="space-y-3">
           <div>
-            <Label className="text-gray-300">Nom du produit</Label>
+            <Label className="text-gray-300">Nom du produit *</Label>
             <Input
               value={content.product_name || ""}
               onChange={(e) => onChange({ ...content, product_name: e.target.value })}
               placeholder="Nom du produit"
               className="bg-gray-900 border-gray-700 text-white"
+              required
             />
           </div>
           <div>
-            <Label className="text-gray-300">URL du produit</Label>
+            <Label className="text-gray-300">URL du produit *</Label>
             <Input
               value={content.product_url || ""}
               onChange={(e) => onChange({ ...content, product_url: e.target.value })}
               placeholder="https://example.com/product"
               className="bg-gray-900 border-gray-700 text-white"
+              required
             />
           </div>
           <div>
-            <Label className="text-gray-300">Lien d'affiliation</Label>
+            <Label className="text-gray-300">Lien d'affiliation *</Label>
             <Input
               value={content.affiliate_url || ""}
               onChange={(e) => onChange({ ...content, affiliate_url: e.target.value })}
               placeholder="https://affiliate.com/..."
               className="bg-gray-900 border-gray-700 text-white"
+              required
             />
           </div>
           <div>
@@ -616,12 +644,14 @@ function SectionContentForm({
             />
           </div>
           <div>
-            <Label className="text-gray-300">Description</Label>
+            <Label className="text-gray-300">Description *</Label>
             <Textarea
               value={content.description || ""}
               onChange={(e) => onChange({ ...content, description: e.target.value })}
-              placeholder="Description du produit"
+              placeholder="Description du produit et pourquoi vous le recommandez"
               className="bg-gray-900 border-gray-700 text-white"
+              rows={3}
+              required
             />
           </div>
         </div>
@@ -682,6 +712,19 @@ function SectionContentForm({
             </TabsContent>
           </Tabs>
 
+          {content.file_url && (
+            <div className="p-3 bg-gray-900 rounded border border-gray-700">
+              <div className="flex items-center gap-2 text-sm text-gray-300">
+                <File className="h-4 w-4" />
+                <span className="font-medium">{content.file_name || "Fichier"}</span>
+                {content.file_size && (
+                  <span className="text-gray-500">({(content.file_size / 1024 / 1024).toFixed(2)} MB)</span>
+                )}
+              </div>
+              {content.file_type && <div className="text-xs text-gray-500 mt-1">Type: {content.file_type}</div>}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-gray-300">Taille du fichier en octets (optionnel)</Label>
@@ -716,6 +759,23 @@ function SectionContentForm({
               {images.map((image: any, index: number) => (
                 <div key={index} className="p-4 bg-gray-800 rounded border border-gray-600">
                   <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-300">Image {index + 1}</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newImages = images.filter((_: any, i: number) => i !== index)
+                          onChange({ ...content, images: newImages })
+                        }}
+                        className="border-red-600 text-red-400 hover:bg-red-900/20"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Supprimer
+                      </Button>
+                    </div>
+
                     <Tabs defaultValue="upload" className="w-full">
                       <TabsList className="grid w-full grid-cols-2 bg-gray-700">
                         <TabsTrigger value="upload" className="data-[state=active]:bg-gray-600">
@@ -758,9 +818,22 @@ function SectionContentForm({
                       </TabsContent>
                     </Tabs>
 
+                    {image.url && (
+                      <div className="mt-2">
+                        <img
+                          src={image.url || "/placeholder.svg"}
+                          alt={image.alt_text || `Image ${index + 1}`}
+                          className="w-full h-24 object-cover rounded border border-gray-600"
+                          onError={(e) => {
+                            e.currentTarget.src = "/placeholder.svg?height=96&width=200"
+                          }}
+                        />
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <Label className="text-sm text-gray-400">Texte alternatif</Label>
+                        <Label className="text-sm text-gray-400">Texte alternatif *</Label>
                         <Input
                           value={image.alt_text || ""}
                           onChange={(e) => {
@@ -770,6 +843,7 @@ function SectionContentForm({
                           }}
                           placeholder="Description"
                           className="bg-gray-900 border-gray-700 text-white text-sm"
+                          required
                         />
                       </div>
                       <div>
@@ -785,22 +859,6 @@ function SectionContentForm({
                           className="bg-gray-900 border-gray-700 text-white text-sm"
                         />
                       </div>
-                    </div>
-
-                    <div className="flex justify-end">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const newImages = images.filter((_: any, i: number) => i !== index)
-                          onChange({ ...content, images: newImages })
-                        }}
-                        className="border-red-600 text-red-400 hover:bg-red-900/20"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Supprimer
-                      </Button>
                     </div>
                   </div>
                 </div>
@@ -826,12 +884,14 @@ function SectionContentForm({
       return (
         <div className="space-y-3">
           <div>
-            <Label className="text-gray-300">Citation</Label>
+            <Label className="text-gray-300">Citation *</Label>
             <Textarea
               value={content.quote || ""}
               onChange={(e) => onChange({ ...content, quote: e.target.value })}
               placeholder="Votre citation..."
               className="bg-gray-900 border-gray-700 text-white"
+              rows={3}
+              required
             />
           </div>
           <div>
@@ -859,13 +919,14 @@ function SectionContentForm({
       return (
         <div className="space-y-3">
           <div>
-            <Label className="text-gray-300">Code</Label>
+            <Label className="text-gray-300">Code *</Label>
             <Textarea
               rows={8}
               value={content.code || ""}
               onChange={(e) => onChange({ ...content, code: e.target.value })}
               placeholder="Votre code..."
-              className="font-mono bg-gray-900 border-gray-700 text-white"
+              className="font-mono bg-gray-900 border-gray-700 text-white text-sm"
+              required
             />
           </div>
           <div className="grid grid-cols-2 gap-3">

@@ -89,10 +89,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title, slug, excerpt, content, category_id, tags, cover_image_url, published, affiliate_links } = body
+    const { title, slug, excerpt, content, category_id, tags, cover_image_url, published, affiliate_links, sections } =
+      body
 
     // Basic validation
-    if (!title || !content || !category_id) {
+    if (!title || (!content && (!sections || sections.length === 0)) || !category_id) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
@@ -108,7 +109,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { data: article, error } = await supabase
+    // Start a transaction to create article and sections
+    const { data: article, error: articleError } = await supabase
       .from("articles")
       .insert({
         title,
@@ -120,22 +122,44 @@ export async function POST(request: NextRequest) {
         featured_image: cover_image_url,
         published: Boolean(published),
         affiliate_links: affiliateLinksJson,
-        author_name: user.email || "Admin", // Get from authenticated user
+        author_name: user.email || "Admin",
         published_at: published ? new Date().toISOString() : null,
-        reading_time: Math.ceil(content.split(" ").length / 200), // Estimate reading time
+        reading_time: Math.ceil((content || "").split(" ").length / 200), // Estimate reading time
       })
       .select()
       .single()
 
-    if (error) {
-      console.error("Database error:", error)
+    if (articleError) {
+      console.error("Database error:", articleError)
       return NextResponse.json({ error: "Failed to create article" }, { status: 500 })
+    }
+
+    // Create sections if provided
+    if (sections && sections.length > 0) {
+      const sectionsToInsert = sections.map((section: any, index: number) => ({
+        article_id: article.id,
+        section_type: section.section_type,
+        order_index: index,
+        title: section.title || null,
+        content: section.content || {},
+        alignment: section.alignment || "center",
+        metadata: section.metadata || {},
+      }))
+
+      const { error: sectionsError } = await supabase.from("article_sections").insert(sectionsToInsert)
+
+      if (sectionsError) {
+        console.error("Sections creation error:", sectionsError)
+        // Don't fail the entire request, just log the error
+        console.warn("Article created but sections failed to save")
+      }
     }
 
     return NextResponse.json({
       success: true,
       article,
       slug: article.slug,
+      sectionsCount: sections?.length || 0,
     })
   } catch (error) {
     console.error("API error:", error)

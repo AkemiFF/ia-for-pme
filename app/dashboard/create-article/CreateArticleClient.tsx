@@ -162,9 +162,60 @@ export default function CreateArticleClient() {
     setLoading(true)
     setMessage({ type: "", text: "" })
 
-    // Basic validation
-    if (!form.title || (!form.content && form.sections.length === 0) || !form.category_id) {
-      setMessage({ type: "error", text: "Veuillez remplir tous les champs obligatoires" })
+    if (!form.title.trim()) {
+      setMessage({ type: "error", text: "Le titre est obligatoire" })
+      setLoading(false)
+      return
+    }
+
+    if (!form.category_id) {
+      setMessage({ type: "error", text: "Veuillez sélectionner une catégorie" })
+      setLoading(false)
+      return
+    }
+
+    if (!form.content.trim() && form.sections.length === 0) {
+      setMessage({ type: "error", text: "Veuillez ajouter du contenu ou des sections à votre article" })
+      setLoading(false)
+      return
+    }
+
+    // Validate sections content
+    const invalidSections = form.sections.filter((section, index) => {
+      switch (section.section_type) {
+        case "texte_markdown":
+          return !section.content.markdown?.trim()
+        case "image":
+          return !section.content.url?.trim() || !section.content.alt_text?.trim()
+        case "video":
+          return !section.content.url?.trim()
+        case "produit_affilie":
+          return (
+            !section.content.product_name?.trim() ||
+            !section.content.product_url?.trim() ||
+            !section.content.affiliate_url?.trim()
+          )
+        case "fichier":
+          return !section.content.file_url?.trim()
+        case "galerie":
+          return (
+            !section.content.images?.length ||
+            section.content.images.some((img: any) => !img.url?.trim() || !img.alt_text?.trim())
+          )
+        case "citation":
+          return !section.content.quote?.trim()
+        case "code":
+          return !section.content.code?.trim()
+        default:
+          return false
+      }
+    })
+
+    if (invalidSections.length > 0) {
+      setMessage({
+        type: "error",
+        text: `Certaines sections sont incomplètes. Veuillez vérifier les sections ${invalidSections.map((_, i) => i + 1).join(", ")}`,
+      })
       setLoading(false)
       return
     }
@@ -179,13 +230,14 @@ export default function CreateArticleClient() {
       })
 
       if (!response.ok) {
-        throw new Error("Erreur lors de la création de l'article")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Erreur lors de la création de l'article")
       }
 
       const data = await response.json()
       setMessage({
         type: "success",
-        text: `Article créé avec succès ! Slug: ${data.slug || form.slug}`,
+        text: `Article créé avec succès ! ${data.sectionsCount > 0 ? `${data.sectionsCount} sections ajoutées.` : ""} Slug: ${data.slug || form.slug}`,
       })
 
       // Reset form
@@ -201,6 +253,9 @@ export default function CreateArticleClient() {
         affiliate_links: "",
         sections: [],
       })
+
+      // Scroll to top to show success message
+      window.scrollTo({ top: 0, behavior: "smooth" })
     } catch (error) {
       setMessage({
         type: "error",
@@ -393,6 +448,15 @@ export default function CreateArticleClient() {
 
         {form.sections.length > 0 && (
           <Card className="bg-gray-800 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                Sections de l'article
+                <span className="text-sm bg-blue-600 text-white px-2 py-1 rounded">{form.sections.length}</span>
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Organisez votre contenu en sections structurées pour une meilleure lisibilité
+              </CardDescription>
+            </CardHeader>
             <CardContent className="p-6">
               <SectionEditor
                 sections={form.sections}

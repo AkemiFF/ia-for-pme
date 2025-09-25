@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { Search, Edit, Trash2, Plus, FileText, AlertCircle } from "lucide-react"
+import { Search, Edit, Trash2, Plus, FileText, AlertCircle, Eye, Clock } from "lucide-react"
 
 interface Article {
   id: string
@@ -30,6 +30,8 @@ interface Article {
   category: {
     name: string
   }
+  reading_time?: number
+  view_count?: number
 }
 
 export default function ArticlesManagementClient() {
@@ -78,6 +80,8 @@ export default function ArticlesManagementClient() {
           created_at: "2024-01-15T10:00:00Z",
           updated_at: "2024-01-15T10:00:00Z",
           category: { name: "Intelligence Artificielle" },
+          reading_time: 8,
+          view_count: 1250,
         },
         {
           id: "2",
@@ -87,6 +91,8 @@ export default function ArticlesManagementClient() {
           created_at: "2024-01-14T15:30:00Z",
           updated_at: "2024-01-14T15:30:00Z",
           category: { name: "Automatisation" },
+          reading_time: 12,
+          view_count: 0,
         },
         {
           id: "3",
@@ -96,6 +102,8 @@ export default function ArticlesManagementClient() {
           created_at: "2024-01-13T09:15:00Z",
           updated_at: "2024-01-13T09:15:00Z",
           category: { name: "Outils IA" },
+          reading_time: 6,
+          view_count: 890,
         },
       ]
       setArticles(mockArticles)
@@ -123,6 +131,10 @@ export default function ArticlesManagementClient() {
 
   const handleEdit = (slug: string) => {
     router.push(`/dashboard/edit-article?slug=${slug}`)
+  }
+
+  const handleView = (slug: string) => {
+    window.open(`/blog/${slug}`, "_blank")
   }
 
   const handleDelete = async (article: Article) => {
@@ -158,13 +170,17 @@ export default function ArticlesManagementClient() {
     })
   }
 
+  const publishedCount = articles.filter((a) => a.status === "published").length
+  const draftCount = articles.filter((a) => a.status === "draft").length
+  const totalViews = articles.reduce((sum, article) => sum + (article.view_count || 0), 0)
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestion des Articles</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-3xl font-bold text-white">Gestion des Articles</h1>
+            <p className="text-gray-400 mt-1">
               {filteredArticles.length} article{filteredArticles.length !== 1 ? "s" : ""} trouvé
               {filteredArticles.length !== 1 ? "s" : ""}
             </p>
@@ -176,9 +192,47 @@ export default function ArticlesManagementClient() {
           </Button>
         </div>
 
-        <Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="bg-gray-800 border-gray-700">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-400">Articles publiés</p>
+                  <p className="text-2xl font-bold text-green-400">{publishedCount}</p>
+                </div>
+                <FileText className="h-8 w-8 text-green-400" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-800 border-gray-700">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-400">Brouillons</p>
+                  <p className="text-2xl font-bold text-yellow-400">{draftCount}</p>
+                </div>
+                <Edit className="h-8 w-8 text-yellow-400" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-800 border-gray-700">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-400">Vues totales</p>
+                  <p className="text-2xl font-bold text-blue-400">{totalViews.toLocaleString()}</p>
+                </div>
+                <Eye className="h-8 w-8 text-blue-400" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-white">
               <Search className="h-5 w-5" />
               Rechercher
             </CardTitle>
@@ -189,7 +243,7 @@ export default function ArticlesManagementClient() {
               placeholder="Rechercher par titre ou catégorie..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-md"
+              className="max-w-md bg-gray-700 border-gray-600 text-gray-200"
             />
           </CardContent>
         </Card>
@@ -201,13 +255,13 @@ export default function ArticlesManagementClient() {
           </Alert>
         )}
 
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-white">
               <FileText className="h-5 w-5" />
               Articles
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-gray-400">
               Gérez vos articles existants, modifiez le contenu et suivez les performances
             </CardDescription>
           </CardHeader>
@@ -219,8 +273,8 @@ export default function ArticlesManagementClient() {
             ) : filteredArticles.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun article trouvé</h3>
-                <p className="text-gray-500 mb-4">
+                <h3 className="text-lg font-medium text-white mb-2">Aucun article trouvé</h3>
+                <p className="text-gray-400 mb-4">
                   {searchTerm
                     ? "Aucun article ne correspond à votre recherche."
                     : "Commencez par créer votre premier article."}
@@ -233,21 +287,23 @@ export default function ArticlesManagementClient() {
               <>
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Article</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead>Catégorie</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Actions</TableHead>
+                    <TableRow className="border-gray-700">
+                      <TableHead className="text-gray-300">Article</TableHead>
+                      <TableHead className="text-gray-300">Statut</TableHead>
+                      <TableHead className="text-gray-300">Catégorie</TableHead>
+                      <TableHead className="text-gray-300">Lecture</TableHead>
+                      <TableHead className="text-gray-300">Vues</TableHead>
+                      <TableHead className="text-gray-300">Date</TableHead>
+                      <TableHead className="text-gray-300">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedArticles.map((article) => (
-                      <TableRow key={article.id}>
+                      <TableRow key={article.id} className="border-gray-700">
                         <TableCell>
                           <div>
-                            <div className="font-medium text-gray-900">{article.title}</div>
-                            <div className="text-sm text-gray-500">/{article.slug}</div>
+                            <div className="font-medium text-white">{article.title}</div>
+                            <div className="text-sm text-gray-400">/{article.slug}</div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -255,14 +311,50 @@ export default function ArticlesManagementClient() {
                             {article.status === "published" ? "Publié" : "Brouillon"}
                           </Badge>
                         </TableCell>
-                        <TableCell>{article.category.name}</TableCell>
-                        <TableCell className="text-sm text-gray-500">{formatDate(article.created_at)}</TableCell>
+                        <TableCell className="text-gray-300">{article.category.name}</TableCell>
+                        <TableCell>
+                          {article.reading_time && (
+                            <div className="flex items-center gap-1 text-gray-400">
+                              <Clock className="h-3 w-3" />
+                              <span className="text-sm">{article.reading_time} min</span>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {article.view_count !== undefined && (
+                            <div className="flex items-center gap-1 text-gray-400">
+                              <Eye className="h-3 w-3" />
+                              <span className="text-sm">{article.view_count.toLocaleString()}</span>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-400">{formatDate(article.created_at)}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={() => handleEdit(article.slug)}>
+                            {article.status === "published" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleView(article.slug)}
+                                className="bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(article.slug)}
+                              className="bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600"
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => setDeleteModal({ show: true, article })}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDeleteModal({ show: true, article })}
+                              className="bg-gray-700 border-gray-600 text-red-400 hover:bg-red-900/20"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -275,7 +367,7 @@ export default function ArticlesManagementClient() {
                 {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between mt-4">
-                    <div className="text-sm text-gray-700">
+                    <div className="text-sm text-gray-400">
                       Affichage de {startIndex + 1} à {Math.min(startIndex + articlesPerPage, filteredArticles.length)}{" "}
                       sur {filteredArticles.length} articles
                     </div>
@@ -286,6 +378,7 @@ export default function ArticlesManagementClient() {
                         size="sm"
                         onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                         disabled={currentPage === 1}
+                        className="bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600"
                       >
                         Précédent
                       </Button>
@@ -299,6 +392,7 @@ export default function ArticlesManagementClient() {
                         size="sm"
                         onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                         disabled={currentPage === totalPages}
+                        className="bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600"
                       >
                         Suivant
                       </Button>
@@ -311,16 +405,20 @@ export default function ArticlesManagementClient() {
         </Card>
 
         <Dialog open={deleteModal.show} onOpenChange={(open) => setDeleteModal({ show: open, article: null })}>
-          <DialogContent>
+          <DialogContent className="bg-gray-800 border-gray-700">
             <DialogHeader>
-              <DialogTitle>Confirmer la suppression</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-white">Confirmer la suppression</DialogTitle>
+              <DialogDescription className="text-gray-400">
                 Êtes-vous sûr de vouloir supprimer l'article "{deleteModal.article?.title}" ? Cette action est
                 irréversible.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteModal({ show: false, article: null })}>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteModal({ show: false, article: null })}
+                className="bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600"
+              >
                 Annuler
               </Button>
               <Button variant="destructive" onClick={() => deleteModal.article && handleDelete(deleteModal.article)}>

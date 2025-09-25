@@ -109,6 +109,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const contentWordCount = (content || "").split(" ").length
+    const sectionsWordCount =
+      sections?.reduce((total: number, section: any) => {
+        if (section.content?.markdown) {
+          return total + section.content.markdown.split(" ").length
+        }
+        return total
+      }, 0) || 0
+    const totalWordCount = contentWordCount + sectionsWordCount
+    const readingTime = Math.max(1, Math.ceil(totalWordCount / 200)) // Minimum 1 minute
+
     // Start a transaction to create article and sections
     const { data: article, error: articleError } = await supabase
       .from("articles")
@@ -123,8 +134,9 @@ export async function POST(request: NextRequest) {
         published: Boolean(published),
         affiliate_links: affiliateLinksJson,
         author_name: user.email || "Admin",
+        author_avatar: "/default-avatar.jpg",
         published_at: published ? new Date().toISOString() : null,
-        reading_time: Math.ceil((content || "").split(" ").length / 200), // Estimate reading time
+        reading_time: readingTime,
       })
       .select()
       .single()

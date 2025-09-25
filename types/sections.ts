@@ -12,6 +12,7 @@ export type SectionType =
 
 export type SectionAlignment = "left" | "right" | "center"
 
+
 export interface BaseSection {
   id: string
   article_id: string

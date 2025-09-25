@@ -2,31 +2,31 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import type { ArticleSection, SectionAlignment, SectionFormData, SectionType } from "@/types/sections"
 import {
-  GripVertical,
-  Trash2,
-  Plus,
-  FileText,
-  ImageIcon,
-  Video,
-  Package,
-  File,
-  Images,
-  Quote,
-  Code,
-  ChevronUp,
   ChevronDown,
+  ChevronUp,
+  Code,
+  File,
+  FileText,
+  GripVertical,
+  ImageIcon,
+  Images,
+  Package,
+  Plus,
+  Quote,
+  Trash2,
+  Video,
 } from "lucide-react"
-import type { ArticleSection, SectionType, SectionAlignment, SectionFormData } from "@/types/sections"
+import { useState } from "react"
 import FileUpload from "./FileUpload"
 
 interface SectionEditorProps {
@@ -34,6 +34,53 @@ interface SectionEditorProps {
   onSectionsChange: (sections: ArticleSection[]) => void
 }
 
+export interface ArticleSectionContent {
+  // Texte Markdown
+  markdown?: string
+
+  // Image
+  url?: string
+  alt_text?: string
+
+  // Vidéo
+  thumbnail?: string
+  duration?: number
+  caption?: string
+
+  // Produit Affilié
+  product_name?: string
+  product_url?: string
+  affiliate_url?: string
+  image_url?: string
+  price?: string
+  description?: string
+
+  // Fichier
+  file_url?: string
+  file_name?: string
+  file_size?: number
+  file_type?: string
+
+  // Galerie
+  images?: {
+    url?: string
+    alt_text?: string
+    caption?: string
+  }[]
+
+  // Citation
+  quote?: string
+  author?: string
+  source?: string
+
+  // Code
+  code?: string
+  language?: string
+  filename?: string
+
+  // Pour extension/fallback
+  [key: string]: any
+}
 const SECTION_TYPES: { value: SectionType; label: string; icon: any }[] = [
   { value: "texte_markdown", label: "Texte Markdown", icon: FileText },
   { value: "image", label: "Image", icon: ImageIcon },
@@ -74,9 +121,18 @@ export default function SectionEditor({ sections, onSectionsChange }: SectionEdi
   }
 
   const updateSection = (sectionId: string, updates: Partial<ArticleSection>) => {
-    const updatedSections = sections.map((section) =>
-      section.id === sectionId ? { ...section, ...updates, updated_at: new Date().toISOString() } : section,
-    )
+    const updatedSections = sections.map((section) => {
+      if (section.id === sectionId) {
+        // Ensure the section_type stays the same and updates are type-safe
+        return {
+          ...section,
+          ...updates,
+          section_type: section.section_type,
+          updated_at: new Date().toISOString(),
+        } as ArticleSection
+      }
+      return section
+    })
     onSectionsChange(updatedSections)
     setEditingSection(null)
   }
@@ -115,29 +171,6 @@ export default function SectionEditor({ sections, onSectionsChange }: SectionEdi
     return <Icon className="h-4 w-4" />
   }
 
-  const getSectionPreview = (section: ArticleSection) => {
-    const type = section.section_type || (section as any).type // Handle both structures
-    switch (type) {
-      case "texte_markdown":
-        return section.content.markdown?.substring(0, 100) + "..." || "Contenu markdown"
-      case "image":
-        return section.content.alt_text || "Image"
-      case "video":
-        return section.content.caption || "Vidéo"
-      case "produit_affilie":
-        return section.content.product_name || "Produit affilié"
-      case "fichier":
-        return section.content.file_name || "Fichier"
-      case "galerie":
-        return `${section.content.images?.length || 0} images`
-      case "citations":
-        return section.content.quote?.substring(0, 50) + "..." || "Citation"
-      case "code":
-        return `Code ${section.content.language || ""}`
-      default:
-        return "Section"
-    }
-  }
 
   return (
     <div className="space-y-4">
@@ -240,7 +273,7 @@ export default function SectionEditor({ sections, onSectionsChange }: SectionEdi
                 <SectionContentForm
                   sectionType={section.section_type || (section as any).type}
                   content={section.content}
-                  onChange={(content) => updateSection(section.id, { content })}
+                  onChange={(content) => updateSection(section.id, { ...section, content })}
                 />
               </div>
             </CardContent>
@@ -375,7 +408,12 @@ function EditSectionForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onUpdate(section.id, formData)
+    // Only update the correct content type for the section
+    onUpdate(section.id, {
+      title: formData.title,
+      alignment: formData.alignment,
+      content: formData.content as ArticleSection["content"],
+    })
   }
 
   return (
@@ -432,14 +470,16 @@ function EditSectionForm({
   )
 }
 
+
+
 function SectionContentForm({
   sectionType,
   content,
   onChange,
 }: {
   sectionType: SectionType
-  content: Record<string, any>
-  onChange: (content: Record<string, any>) => void
+  content: ArticleSectionContent
+  onChange: (content: ArticleSectionContent) => void
 }) {
   console.log("[v0] SectionContentForm rendering:", { sectionType, content })
 

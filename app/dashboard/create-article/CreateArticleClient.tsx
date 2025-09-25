@@ -1,24 +1,24 @@
 "use client"
 
-import type React from "react"
-import SectionButtonsPanel from "@/components/dashboard/SectionButtonsPanel"
 import ImageUploader from "@/components/dashboard/ImageUploader"
+import SectionButtonsPanel from "@/components/dashboard/SectionButtonsPanel"
 import SectionEditor from "@/components/dashboard/SectionEditor"
 import type { ArticleSection } from "@/types/sections"
+import type React from "react"
 
-import { useAuth } from "@/hooks/use-auth"
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Textarea } from "@/components/ui/textarea"
+import { useAuth } from "@/hooks/use-auth"
+import { AlertCircle, ArrowLeft, Save } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { Save, ArrowLeft, AlertCircle } from "lucide-react"
 
 interface Category {
   id: string
@@ -266,19 +266,36 @@ export default function CreateArticleClient() {
     }
   }
 
-  const addSection = (type: ArticleSection["type"]) => {
-    const newSection: ArticleSection = {
+  const addSection = (section_type: ArticleSection["section_type"]) => {
+    const newSection = {
       id: Date.now().toString(),
       article_id: "",
-      section_type: type, // Changed from 'type' to 'section_type'
-      order_index: form.sections.length, // Changed from 'order' to 'order_index'
+      section_type,
+      order_index: form.sections.length,
       title: "",
       alignment: "left",
-      content: {},
+      content:
+        section_type === "texte_markdown"
+          ? { markdown: "" }
+          : section_type === "image"
+            ? { url: "", alt_text: "", caption: "" }
+            : section_type === "video"
+              ? { url: "", thumbnail: "", duration: 0, caption: "" }
+              : section_type === "produit_affilie"
+                ? { product_name: "", product_url: "", affiliate_url: "" }
+                : section_type === "fichier"
+                  ? { file_url: "", file_name: "", file_size: 0, file_type: "" }
+                  : section_type === "galerie"
+                    ? { images: [] }
+                    : section_type === "citation"
+                      ? { quote: "" }
+                      : section_type === "code"
+                        ? { code: "" }
+                        : { markdown: "" }, // fallback to a valid type
       metadata: {},
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    }
+    } as ArticleSection
 
     console.log("[v0] Adding section:", newSection)
     setForm((prev) => ({
@@ -290,7 +307,11 @@ export default function CreateArticleClient() {
   const updateSection = (sectionId: string, updates: Partial<ArticleSection>) => {
     setForm((prev) => ({
       ...prev,
-      sections: prev.sections.map((section) => (section.id === sectionId ? { ...section, ...updates } : section)),
+      sections: prev.sections.map((section) =>
+        section.id === sectionId
+          ? { ...section, ...updates }
+          : section
+      ) as ArticleSection[],
     }))
   }
 

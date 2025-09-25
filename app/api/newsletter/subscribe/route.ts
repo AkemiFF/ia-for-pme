@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     // Check if email already exists
     const { data: existing } = await supabase
       .from("newsletter_subscribers")
-      .select("id")
+      .select("id, is_active")
       .eq("email", email)
       .single()
 

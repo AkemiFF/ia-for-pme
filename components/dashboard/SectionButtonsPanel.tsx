@@ -2,11 +2,11 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileText, ImageIcon, Video, ExternalLink, Paperclip, Images, Quote, Code } from "lucide-react"
 import type { ArticleSection } from "@/types/sections"
+import { Code, ExternalLink, FileText, ImageIcon, Images, Paperclip, Quote, Video } from "lucide-react"
 
 interface SectionButtonsPanelProps {
-  onAddSection: (type: ArticleSection["type"]) => void
+  onAddSection: (type: ArticleSection["section_type"]) => void
 }
 
 export default function SectionButtonsPanel({ onAddSection }: SectionButtonsPanelProps) {
@@ -48,7 +48,7 @@ export default function SectionButtonsPanel({ onAddSection }: SectionButtonsPane
       description: "Créer une galerie d'images",
     },
     {
-      type: "citations" as const,
+      type: "citation" as const,
       label: "Citation",
       icon: Quote,
       description: "Ajouter une citation mise en valeur",

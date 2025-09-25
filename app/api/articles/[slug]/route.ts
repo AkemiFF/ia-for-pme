@@ -10,14 +10,16 @@ interface RelatedArticle {
   published_at: string
   reading_time: number
   featured_image: string | null
-  categories: {
-    name: string
-    slug: string
-  } | {
-    id: number
-    name: string
-    slug: string
-  }
+  categories:
+    | {
+        name: string
+        slug: string
+      }
+    | {
+        id: number
+        name: string
+        slug: string
+      }
 }
 export async function GET(request: NextRequest, { params }: { params: { slug: string } }) {
   try {
@@ -88,9 +90,14 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
           article: {
             ...fallbackArticle,
             categories: fallbackArticle.category,
+            author: {
+              name: fallbackArticle.author.name,
+              avatar: fallbackArticle.author.avatar,
+            },
             author_name: fallbackArticle.author.name,
             author_avatar: fallbackArticle.author.avatar,
             reading_time: fallbackArticle.read_time,
+            read_time: fallbackArticle.read_time,
             view_count: 0,
             updated_at: fallbackArticle.published_at,
             affiliate_links: null,
@@ -128,8 +135,6 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
       }
     }
 
-
-
     let relatedArticles: RelatedArticle[] = []
     if (categoryId) {
       const { data: related } = await supabase
@@ -153,7 +158,7 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
 
       relatedArticles = (related || []).map((item: any) => ({
         ...item,
-        categories: Array.isArray(item.categories) ? item.categories[0] : item.categories
+        categories: Array.isArray(item.categories) ? item.categories[0] : item.categories,
       }))
     }
 
@@ -173,8 +178,17 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
       // Don't fail the request if analytics fails
     }
 
+    const enrichedArticle = {
+      ...article,
+      author: {
+        name: article.author_name,
+        avatar: article.author_avatar,
+      },
+      read_time: article.reading_time,
+    }
+
     return NextResponse.json({
-      article,
+      article: enrichedArticle,
       relatedArticles,
     })
   } catch (error) {
@@ -206,9 +220,14 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
         article: {
           ...fallbackArticle,
           categories: fallbackArticle.category,
+          author: {
+            name: fallbackArticle.author.name,
+            avatar: fallbackArticle.author.avatar,
+          },
           author_name: fallbackArticle.author.name,
           author_avatar: fallbackArticle.author.avatar,
           reading_time: fallbackArticle.read_time,
+          read_time: fallbackArticle.read_time,
           view_count: 0,
           updated_at: fallbackArticle.published_at,
           affiliate_links: null,

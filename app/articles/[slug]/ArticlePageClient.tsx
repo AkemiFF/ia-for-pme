@@ -1,26 +1,29 @@
 "use client"
 import { notFound } from "next/navigation"
 
-// <CHANGE> Define article interface for type safety
+// Define article interface for type safety
 interface Article {
   id: string
   slug: string
   title: string
   excerpt: string
   content: string
-  author: {
+  author_name: string
+  author_avatar?: string
+  author?: {
     name: string
     avatar?: string
   }
-  publishedAt: string
-  updatedAt?: string
-  readingTime?: number
+  published_at: string
+  updated_at?: string
+  reading_time?: number
+  read_time?: number
   tags?: string[]
   faq?: {
     question: string
     answer: string
   }[]
-  featuredImage?: string
+  featured_image?: string
 }
 
 interface ArticlePageProps {
@@ -29,7 +32,7 @@ interface ArticlePageProps {
   }
 }
 
-// <CHANGE> Calculate reading time based on word count
+// Calculate reading time based on word count
 function calculateReadingTime(content: string): number {
   const wordsPerMinute = 200
   const textContent = content.replace(/<[^>]*>/g, "") // Remove HTML tags
@@ -37,7 +40,7 @@ function calculateReadingTime(content: string): number {
   return Math.ceil(wordCount / wordsPerMinute)
 }
 
-// <CHANGE> Format date for display
+// Format date for display
 function formatDate(dateString: string): string {
   const date = new Date(dateString)
   return date.toLocaleDateString("fr-FR", {
@@ -47,7 +50,7 @@ function formatDate(dateString: string): string {
   })
 }
 
-// <CHANGE> Insert ad slots in content
+// Insert ad slots in content
 function insertAdSlots(content: string): string {
   // SECURITY NOTE: In production, use a proper HTML sanitizer like DOMPurify
   // to prevent XSS attacks before using dangerouslySetInnerHTML
@@ -70,7 +73,7 @@ function insertAdSlots(content: string): string {
   return processedContent
 }
 
-// <CHANGE> Render ad placeholder component
+// Render ad placeholder component
 function AdSlot({ type, className = "" }: { type: "inline" | "section"; className?: string }) {
   return (
     <div className={`bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center my-6 ${className}`}>
@@ -85,7 +88,7 @@ function AdSlot({ type, className = "" }: { type: "inline" | "section"; classNam
   )
 }
 
-// <CHANGE> Render affiliate tools section
+// Render affiliate tools section
 function AffiliateToolsSection() {
   // TODO: Replace with actual affiliate links from environment variables
   const affiliateUrl = process.env.NEXT_PUBLIC_AFFILIATE_DEFAULT || "#"
@@ -128,7 +131,7 @@ function AffiliateToolsSection() {
   )
 }
 
-// <CHANGE> Render FAQ section
+// Render FAQ section
 function FAQSection({ faq }: { faq: Article["faq"] }) {
   if (!faq || faq.length === 0) return null
 
@@ -149,7 +152,7 @@ function FAQSection({ faq }: { faq: Article["faq"] }) {
   )
 }
 
-// <CHANGE> Generate JSON-LD structured data
+// Generate JSON-LD structured data
 function generateArticleSchema(article: Article) {
   return {
     "@context": "https://schema.org",
@@ -158,7 +161,7 @@ function generateArticleSchema(article: Article) {
     description: article.excerpt,
     author: {
       "@type": "Person",
-      name: article.author.name,
+      name: article.author?.name || article.author_name,
     },
     publisher: {
       "@type": "Organization",
@@ -168,9 +171,9 @@ function generateArticleSchema(article: Article) {
         url: "/ia-pme-logo.jpg",
       },
     },
-    datePublished: article.publishedAt,
-    dateModified: article.updatedAt || article.publishedAt,
-    image: article.featuredImage || "/ai-business-article.jpg",
+    datePublished: article.published_at,
+    dateModified: article.updated_at || article.published_at,
+    image: article.featured_image || "/ai-business-article.jpg",
     mainEntityOfPage: {
       "@type": "WebPage",
       "@id": `https://ia-pme.com/articles/${article.slug}`,
@@ -178,14 +181,17 @@ function generateArticleSchema(article: Article) {
   }
 }
 
-// <CHANGE> Main article page component
+// Main article page component
 export default async function ArticlePageClient({ params, article }: { params: { slug: string }; article: Article }) {
   if (!article) {
     notFound()
   }
 
-  const readingTime = article.readingTime || calculateReadingTime(article.content)
+  const readingTime = article.reading_time || article.read_time || calculateReadingTime(article.content)
   const processedContent = insertAdSlots(article.content)
+
+  const authorName = article.author?.name || article.author_name
+  const authorAvatar = article.author?.avatar || article.author_avatar
 
   return (
     <>
@@ -204,17 +210,13 @@ export default async function ArticlePageClient({ params, article }: { params: {
 
           <div className="flex items-center gap-6 text-gray-600 mb-6">
             <div className="flex items-center gap-2">
-              {article.author.avatar && (
-                <img
-                  src={article.author.avatar || "/placeholder.svg"}
-                  alt={article.author.name}
-                  className="w-8 h-8 rounded-full"
-                />
+              {authorAvatar && (
+                <img src={authorAvatar || "/placeholder.svg"} alt={authorName} className="w-8 h-8 rounded-full" />
               )}
-              <span className="font-medium">{article.author.name}</span>
+              <span className="font-medium">{authorName}</span>
             </div>
 
-            <time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time>
+            <time dateTime={article.published_at}>{formatDate(article.published_at)}</time>
 
             <span className="flex items-center gap-1">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -239,9 +241,9 @@ export default async function ArticlePageClient({ params, article }: { params: {
             </div>
           )}
 
-          {article.featuredImage && (
+          {article.featured_image && (
             <img
-              src={article.featuredImage || "/placeholder.svg"}
+              src={article.featured_image || "/placeholder.svg"}
               alt={article.title}
               className="w-full h-64 object-cover rounded-lg mb-6"
             />

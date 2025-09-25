@@ -34,10 +34,7 @@ export default function ArticlesPageClient() {
 
       const data = await fetchArticles({
         ...newFilters,
-        readTime: [
-          newFilters.readTime[0] ?? 5,
-          newFilters.readTime[1] ?? 30,
-        ] as [number, number],
+        readTime: [newFilters.readTime[0] ?? 5, newFilters.readTime[1] ?? 30] as [number, number],
         page,
         limit: 12,
       })
@@ -173,7 +170,7 @@ export default function ArticlesPageClient() {
                       </span>
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        <span>{article.read_time} min</span>
+                        <span>{article.reading_time || article.read_time} min</span>
                       </div>
                     </div>
 
@@ -267,7 +264,7 @@ export default function ArticlesPageClient() {
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        <span>{article.read_time} min</span>
+                        <span>{article.reading_time || article.read_time} min</span>
                       </div>
                     </div>
 
@@ -338,7 +335,7 @@ export default function ArticlesPageClient() {
                       </span>
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        <span>{article.read_time} min</span>
+                        <span>{article.reading_time || article.read_time} min</span>
                       </div>
                     </div>
 

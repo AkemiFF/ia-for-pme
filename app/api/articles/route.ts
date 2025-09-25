@@ -128,9 +128,12 @@ export async function GET(request: NextRequest) {
         articles: paginatedArticles.map((article) => ({
           ...article,
           categories: article.category, // Map category to categories for consistency
-          author_name: article.author.name,
-          author_avatar: article.author.avatar,
+          author: {
+            name: article.author.name,
+            avatar: article.author.avatar,
+          },
           reading_time: article.read_time,
+          read_time: article.read_time,
         })),
         pagination: {
           page,
@@ -160,7 +163,15 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      articles: articles || [],
+      articles:
+        articles?.map((article) => ({
+          ...article,
+          author: {
+            name: article.author_name,
+            avatar: article.author_avatar,
+          },
+          read_time: article.reading_time,
+        })) || [],
       pagination: {
         page,
         limit,
@@ -184,9 +195,12 @@ export async function GET(request: NextRequest) {
       articles: paginatedArticles.map((article) => ({
         ...article,
         categories: article.category,
-        author_name: article.author.name,
-        author_avatar: article.author.avatar,
+        author: {
+          name: article.author.name,
+          avatar: article.author.avatar,
+        },
         reading_time: article.read_time,
+        read_time: article.read_time,
       })),
       pagination: {
         page,

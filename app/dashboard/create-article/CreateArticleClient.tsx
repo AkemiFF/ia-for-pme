@@ -33,7 +33,7 @@ interface ArticleForm {
   content: string
   category_id: string
   tags: string
-  cover_image_url: string
+  featured_image: string
   published: boolean
   affiliate_links: string
   sections: ArticleSection[]
@@ -48,7 +48,7 @@ export default function CreateArticleClient() {
     content: "",
     category_id: "",
     tags: "",
-    cover_image_url: "",
+    featured_image: "",
     published: false,
     affiliate_links: "",
     sections: [],
@@ -137,7 +137,7 @@ export default function CreateArticleClient() {
         excerpt: data.excerpt || "",
         content: data.content || "",
         tags: data.tags || aiKeywords,
-        cover_image_url: data.cover_image_url || "",
+        featured_image: data.featured_image || "",
       }))
 
       setMessage({ type: "success", text: "Contenu généré avec succès !" })
@@ -148,7 +148,7 @@ export default function CreateArticleClient() {
         excerpt: `Découvrez comment ${form.title.toLowerCase()} peut transformer votre PME grâce à l'intelligence artificielle.`,
         content: `# ${form.title}\n\nL'intelligence artificielle révolutionne la façon dont les PME opèrent. Dans cet article, nous explorons les opportunités et défis.\n\n## Les avantages clés\n\n- Automatisation des tâches répétitives\n- Amélioration de la prise de décision\n- Optimisation des processus\n\n## Mise en œuvre pratique\n\nPour commencer votre transformation IA, suivez ces étapes essentielles...\n\n*Contenu généré par IA - À réviser et personnaliser*`,
         tags: aiKeywords,
-        cover_image_url: "/ai-business-article.jpg",
+        featured_image: "/ai-business-article.jpg",
       }))
 
       setMessage({ type: "success", text: "Contenu généré avec succès ! (Mode développement)" })
@@ -248,7 +248,7 @@ export default function CreateArticleClient() {
         content: "",
         category_id: "",
         tags: "",
-        cover_image_url: "",
+        featured_image: "",
         published: false,
         affiliate_links: "",
         sections: [],
@@ -308,9 +308,7 @@ export default function CreateArticleClient() {
     setForm((prev) => ({
       ...prev,
       sections: prev.sections.map((section) =>
-        section.id === sectionId
-          ? { ...section, ...updates }
-          : section
+        section.id === sectionId ? { ...section, ...updates } : section,
       ) as ArticleSection[],
     }))
   }
@@ -412,8 +410,8 @@ export default function CreateArticleClient() {
               </div>
 
               <ImageUploader
-                value={form.cover_image_url}
-                onChange={(url) => handleInputChange("cover_image_url", url)}
+                value={form.featured_image}
+                onChange={(url) => handleInputChange("featured_image", url)}
                 label="Image de couverture"
                 placeholder="https://example.com/image.jpg"
               />

@@ -25,7 +25,7 @@ export interface Article {
   updated_at: string
   reading_time: number
   tags: string[]
-  featured_image?: string
+  featured_image?: string // Standardized to featured_image instead of cover_image_url
   affiliate_links: AffiliateLink[]
   featured: boolean
   sector: "pme" | "freelance" | "ecommerce"
@@ -35,6 +35,12 @@ export interface Article {
   view_count: number
   created_at: string
   categories?: Category
+  author?: {
+    name: string
+    avatar?: string
+  }
+  read_time?: number
+  category?: Category
 }
 
 export interface AffiliateLink {

@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title, slug, excerpt, content, category_id, tags, cover_image_url, published, affiliate_links, sections } =
+    const { title, slug, excerpt, content, category_id, tags, featured_image, published, affiliate_links, sections } =
       body
 
     // Basic validation
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
         content,
         category_id: Number.parseInt(category_id),
         tags: tagsArray,
-        featured_image: cover_image_url,
+        featured_image,
         published: Boolean(published),
         affiliate_links: affiliateLinksJson,
         author_name: user.email || "Admin",

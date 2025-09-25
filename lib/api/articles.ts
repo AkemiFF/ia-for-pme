@@ -14,7 +14,7 @@ export interface Article {
     avatar?: string
   }
   published_at: string
-  read_time: number
+  reading_time: number
   featured: boolean
   sector: string
   budget: string
@@ -23,6 +23,7 @@ export interface Article {
   featured_image?: string
   seo_title?: string
   seo_description?: string
+  read_time?: number
 }
 
 export interface Category {
@@ -102,6 +103,7 @@ export async function fetchArticles(filters: FilterOptions = {}): Promise<{
       avatar: article.author_avatar,
     },
     published_at: article.published_at,
+    reading_time: article.reading_time || 1,
     read_time: article.reading_time || 1,
     featured: article.featured || false,
     sector: article.sector || "",
@@ -149,6 +151,7 @@ export async function fetchArticle(slug: string): Promise<Article> {
       avatar: article.author_avatar || article.author?.avatar,
     },
     published_at: article.published_at || article.publishedAt,
+    reading_time: article.reading_time || article.read_time || 1,
     read_time: article.reading_time || article.read_time || 1,
     featured: article.featured || false,
     sector: article.sector || "",
@@ -236,6 +239,7 @@ export async function fetchRecommendedArticles(
       avatar: article.author_avatar,
     },
     published_at: article.published_at,
+    reading_time: article.reading_time || 1,
     read_time: article.reading_time || 1,
     featured: article.featured || false,
     sector: article.sector || "",

@@ -121,7 +121,7 @@ export type ArticleSectionContent =
       affiliate_url: string
       image_url?: string
       price?: string
-      description: string
+      description?: string
     }
   | { file_url: string; file_name: string; file_size?: number; file_type?: string }
   | { images: Array<{ url: string; alt_text: string; caption?: string }> }

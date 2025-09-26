@@ -15,6 +15,11 @@ export interface Author {
   avatar?: string
 }
 
+export interface FAQ {
+  question: string
+  answer: string
+}
+
 export interface Article {
   id: number
   title: string
@@ -34,6 +39,8 @@ export interface Article {
   featured_image?: string
   seo_title?: string
   seo_description?: string
+  faq?: FAQ[] // Added FAQ property to Article interface
+  updated_at?: string // Added updated_at property used in schema generation
 }
 
 export interface FilterOptions {

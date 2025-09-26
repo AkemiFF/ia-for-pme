@@ -4,33 +4,7 @@ import { useState, useEffect } from "react"
 import DOMPurify from "dompurify"
 import SectionRenderer from "@/components/article/SectionRenderer"
 import type { ArticleSection } from "@/types/sections"
-
-interface Article {
-  id: number
-  slug: string
-  title: string
-  excerpt: string
-  content: string
-  sections?: ArticleSection[] // Added sections support
-  category: {
-    id: number
-    name: string
-    slug: string
-  }
-  author: {
-    name: string
-    avatar?: string
-  }
-  published_at: string
-  updated_at?: string
-  read_time?: number
-  tags?: string[]
-  faq?: {
-    question: string
-    answer: string
-  }[]
-  featured_image?: string
-}
+import type { Article } from "@/types"
 
 function calculateReadingTime(content: string): number {
   if (!content || typeof content !== "string") {
@@ -242,7 +216,9 @@ function renderMarkdown(markdown: string): string {
   return html
 }
 
-export default function ArticleContent({ article }: { article: Article }) {
+export default function ArticleContent({
+  article,
+}: { article: Article & { sections?: ArticleSection[]; faq?: { question: string; answer: string }[] } }) {
   const [renderedContent, setRenderedContent] = useState<string>("")
 
   useEffect(() => {

@@ -20,7 +20,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Search, Edit, Trash2, Plus, FileText, AlertCircle, Eye, Clock } from "lucide-react"
 
-interface Article {
+interface DashboardArticle {
   id: string
   title: string
   slug: string
@@ -36,12 +36,12 @@ interface Article {
 
 export default function ArticlesManagementClient() {
   const { fetchWithAuth, isAuthenticated } = useAuth()
-  const [articles, setArticles] = useState<Article[]>([])
-  const [filteredArticles, setFilteredArticles] = useState<Article[]>([])
+  const [articles, setArticles] = useState<DashboardArticle[]>([])
+  const [filteredArticles, setFilteredArticles] = useState<DashboardArticle[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
-  const [deleteModal, setDeleteModal] = useState<{ show: boolean; article: Article | null }>({
+  const [deleteModal, setDeleteModal] = useState<{ show: boolean; article: DashboardArticle | null }>({
     show: false,
     article: null,
   })
@@ -71,7 +71,7 @@ export default function ArticlesManagementClient() {
     } catch (error) {
       console.error("Error fetching articles:", error)
       // Mock data for development
-      const mockArticles: Article[] = [
+      const mockArticles: DashboardArticle[] = [
         {
           id: "1",
           title: "Comment l'IA transforme les PME en 2024",
@@ -137,7 +137,7 @@ export default function ArticlesManagementClient() {
     window.open(`/blog/${slug}`, "_blank")
   }
 
-  const handleDelete = async (article: Article) => {
+  const handleDelete = async (article: DashboardArticle) => {
     try {
       const response = await fetchWithAuth(`/api/dashboard/articles/${article.id}`, {
         method: "DELETE",

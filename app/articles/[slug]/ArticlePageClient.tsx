@@ -1,30 +1,6 @@
 "use client"
 import { notFound } from "next/navigation"
-
-// Define article interface for type safety
-interface Article {
-  id: string
-  slug: string
-  title: string
-  excerpt: string
-  content: string
-  author_name: string
-  author_avatar?: string
-  author?: {
-    name: string
-    avatar?: string
-  }
-  published_at: string
-  updated_at?: string
-  reading_time?: number
-  read_time?: number
-  tags?: string[]
-  faq?: {
-    question: string
-    answer: string
-  }[]
-  featured_image?: string
-}
+import type { Article } from "@/types"
 
 interface ArticlePageProps {
   params: {
@@ -57,7 +33,7 @@ function insertAdSlots(content: string): string {
 
   // Insert ad after first paragraph
   const firstParagraphRegex = /(<p>.*?<\/p>)/
-  let processedContent = content.replace(firstParagraphRegex, "$1\n<!-- AD_SLOT_INLINE -->")
+  let processedContent = content.replace(firstParagraphRegex, "$1\n AD_SLOT_INLINE ")
 
   // Insert ads between H2 sections
   const h2Regex = /(<h2>.*?<\/h2>)/g
@@ -65,7 +41,7 @@ function insertAdSlots(content: string): string {
   processedContent = processedContent.replace(h2Regex, (match) => {
     h2Count++
     if (h2Count === 2 || h2Count === 4) {
-      return `<!-- AD_SLOT_SECTION -->\n${match}`
+      return ` AD_SLOT_SECTION \n${match}`
     }
     return match
   })
@@ -132,7 +108,7 @@ function AffiliateToolsSection() {
 }
 
 // Render FAQ section
-function FAQSection({ faq }: { faq: Article["faq"] }) {
+function FAQSection({ faq }: { faq: { question: string; answer: string }[] | undefined }) {
   if (!faq || faq.length === 0) return null
 
   return (
@@ -161,7 +137,7 @@ function generateArticleSchema(article: Article) {
     description: article.excerpt,
     author: {
       "@type": "Person",
-      name: article.author?.name || article.author_name,
+      name: article.author?.name || "IA pour PME",
     },
     publisher: {
       "@type": "Organization",
@@ -172,7 +148,7 @@ function generateArticleSchema(article: Article) {
       },
     },
     datePublished: article.published_at,
-    dateModified: article.updated_at || article.published_at,
+    dateModified: article.published_at,
     image: article.featured_image || "/ai-business-article.jpg",
     mainEntityOfPage: {
       "@type": "WebPage",
@@ -182,16 +158,19 @@ function generateArticleSchema(article: Article) {
 }
 
 // Main article page component
-export default async function ArticlePageClient({ params, article }: { params: { slug: string }; article: Article }) {
+export default async function ArticlePageClient({
+  params,
+  article,
+}: { params: { slug: string }; article: Article & { faq?: { question: string; answer: string }[] } }) {
   if (!article) {
     notFound()
   }
 
-  const readingTime = article.reading_time || article.read_time || calculateReadingTime(article.content)
-  const processedContent = insertAdSlots(article.content)
+  const readingTime = article.reading_time || article.read_time || calculateReadingTime(article.content || "")
+  const processedContent = insertAdSlots(article.content || "")
 
-  const authorName = article.author?.name || article.author_name
-  const authorAvatar = article.author?.avatar || article.author_avatar
+  const authorName = article.author?.name || "IA pour PME"
+  const authorAvatar = article.author?.avatar
 
   return (
     <>
@@ -257,8 +236,8 @@ export default async function ArticlePageClient({ params, article }: { params: {
           <div
             dangerouslySetInnerHTML={{
               __html: processedContent
-                .replace(/<!-- AD_SLOT_INLINE -->/g, '<div class="ad-slot-inline"></div>')
-                .replace(/<!-- AD_SLOT_SECTION -->/g, '<div class="ad-slot-section"></div>'),
+                .replace(/ AD_SLOT_INLINE /g, '<div class="ad-slot-inline"></div>')
+                .replace(/ AD_SLOT_SECTION /g, '<div class="ad-slot-section"></div>'),
             }}
           />
         </div>

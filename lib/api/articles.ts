@@ -1,51 +1,4 @@
-export interface Article {
-  id: number
-  title: string
-  slug: string
-  excerpt: string
-  content?: string
-  category: {
-    id: number
-    name: string
-    slug: string
-  }
-  author: {
-    name: string
-    avatar?: string
-  }
-  published_at: string
-  reading_time: number
-  featured: boolean
-  sector: string
-  budget: string
-  level: string
-  tags: string[]
-  featured_image?: string
-  seo_title?: string
-  seo_description?: string
-  read_time?: number
-}
-
-export interface Category {
-  id: number
-  name: string
-  slug: string
-  description: string
-  seo_title?: string
-  seo_description?: string
-}
-
-export interface FilterOptions {
-  sectors?: string[]
-  budgets?: string[]
-  levels?: string[]
-  readTime?: [number, number]
-  tags?: string[]
-  searchQuery?: string
-  category?: string
-  page?: number
-  limit?: number
-}
+import type { Article, Category, FilterOptions, ArticlesResponse, CategoryArticlesResponse } from "@/types"
 
 function getBaseUrl(): string {
   if (typeof window !== "undefined") {
@@ -58,12 +11,7 @@ function getBaseUrl(): string {
 }
 
 // Fetch all articles with optional filters
-export async function fetchArticles(filters: FilterOptions = {}): Promise<{
-  articles: Article[]
-  total: number
-  page: number
-  totalPages: number
-}> {
+export async function fetchArticles(filters: FilterOptions = {}): Promise<ArticlesResponse> {
   const params = new URLSearchParams()
 
   if (filters.sectors?.length) params.append("sectors", filters.sectors.join(","))
@@ -180,13 +128,7 @@ export async function fetchCategories(): Promise<Category[]> {
 export async function fetchCategoryArticles(
   categorySlug: string,
   filters: FilterOptions = {},
-): Promise<{
-  category: Category
-  articles: Article[]
-  total: number
-  page: number
-  totalPages: number
-}> {
+): Promise<CategoryArticlesResponse> {
   const params = new URLSearchParams()
 
   if (filters.page) params.append("page", filters.page.toString())

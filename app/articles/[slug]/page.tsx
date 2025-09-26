@@ -1,4 +1,5 @@
-import { fetchArticle, type Article } from "@/lib/api/articles"
+import { fetchArticle } from "@/lib/api/articles"
+import type { Article } from "@/types"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import ArticleContent from "./ArticleContent"
@@ -55,13 +56,13 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
         authors: [article.author.name],
         images: article.featured_image
           ? [
-            {
-              url: article.featured_image,
-              width: 1200,
-              height: 630,
-              alt: article.title,
-            },
-          ]
+              {
+                url: article.featured_image,
+                width: 1200,
+                height: 630,
+                alt: article.title,
+              },
+            ]
           : [],
         url: `${process.env.NEXT_PUBLIC_SITE_URL}/articles/${params.slug}`,
         siteName: "IA pour PME",

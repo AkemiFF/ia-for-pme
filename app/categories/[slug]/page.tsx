@@ -2,33 +2,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import CategoryContent from "./CategoryContent"
 import { fetchCategories, fetchCategoryArticles } from "@/lib/api/articles"
-
-interface Category {
-  id: number
-  name: string
-  slug: string
-  description: string
-  seo_title?: string
-  seo_description?: string
-}
-
-interface Article {
-  id: number
-  title: string
-  slug: string
-  excerpt: string
-  published_at: string
-  read_time: number
-  featured_image?: string
-}
-
-interface AffiliateResource {
-  id: number
-  name: string
-  description: string
-  url: string
-  logo?: string
-}
+import type { AffiliateResource } from "@/types"
 
 // Génération des chemins statiques
 export async function generateStaticParams() {

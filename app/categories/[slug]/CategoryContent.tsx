@@ -5,31 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-
-interface Category {
-  id: number
-  name: string
-  slug: string
-  description: string
-}
-
-interface Article {
-  id: number
-  title: string
-  slug: string
-  excerpt: string
-  published_at: string
-  read_time: number
-  featured_image?: string
-}
-
-interface AffiliateResource {
-  id: number
-  name: string
-  description: string
-  url: string
-  logo?: string
-}
+import type { Category, Article, AffiliateResource } from "@/types"
 
 interface CategoryContentProps {
   category: Category

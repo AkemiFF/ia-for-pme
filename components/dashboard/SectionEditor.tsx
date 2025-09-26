@@ -10,7 +10,13 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import type { ArticleSection, SectionAlignment, SectionFormData, SectionType } from "@/types/sections"
+import type {
+  ArticleSection,
+  SectionAlignment,
+  SectionFormData,
+  SectionType,
+  ArticleSectionContent,
+} from "@/types/sections"
 import {
   ChevronDown,
   ChevronUp,
@@ -34,53 +40,6 @@ interface SectionEditorProps {
   onSectionsChange: (sections: ArticleSection[]) => void
 }
 
-export interface ArticleSectionContent {
-  // Texte Markdown
-  markdown?: string
-
-  // Image
-  url?: string
-  alt_text?: string
-
-  // Vidéo
-  thumbnail?: string
-  duration?: number
-  caption?: string
-
-  // Produit Affilié
-  product_name?: string
-  product_url?: string
-  affiliate_url?: string
-  image_url?: string
-  price?: string
-  description?: string
-
-  // Fichier
-  file_url?: string
-  file_name?: string
-  file_size?: number
-  file_type?: string
-
-  // Galerie
-  images?: {
-    url?: string
-    alt_text?: string
-    caption?: string
-  }[]
-
-  // Citation
-  quote?: string
-  author?: string
-  source?: string
-
-  // Code
-  code?: string
-  language?: string
-  filename?: string
-
-  // Pour extension/fallback
-  [key: string]: any
-}
 const SECTION_TYPES: { value: SectionType; label: string; icon: any }[] = [
   { value: "texte_markdown", label: "Texte Markdown", icon: FileText },
   { value: "image", label: "Image", icon: ImageIcon },
@@ -123,7 +82,6 @@ export default function SectionEditor({ sections, onSectionsChange }: SectionEdi
   const updateSection = (sectionId: string, updates: Partial<ArticleSection>) => {
     const updatedSections = sections.map((section) => {
       if (section.id === sectionId) {
-        // Ensure the section_type stays the same and updates are type-safe
         return {
           ...section,
           ...updates,
@@ -155,7 +113,6 @@ export default function SectionEditor({ sections, onSectionsChange }: SectionEdi
     const [movedSection] = newSections.splice(currentIndex, 1)
     newSections.splice(newIndex, 0, movedSection)
 
-    // Update order_index for all sections
     const reorderedSections = newSections.map((section, index) => ({
       ...section,
       order_index: index,
@@ -165,12 +122,11 @@ export default function SectionEditor({ sections, onSectionsChange }: SectionEdi
   }
 
   const getSectionIcon = (section: ArticleSection) => {
-    const type = section.section_type || (section as any).type // Handle both structures
+    const type = section.section_type || (section as any).type
     const sectionType = SECTION_TYPES.find((t) => t.value === type)
     const Icon = sectionType?.icon || FileText
     return <Icon className="h-4 w-4" />
   }
-
 
   return (
     <div className="space-y-4">
@@ -185,7 +141,6 @@ export default function SectionEditor({ sections, onSectionsChange }: SectionEdi
         </Button>
       </div>
 
-      {/* Existing sections */}
       <div className="space-y-3">
         {sections.map((section, index) => (
           <Card key={section.id} className="bg-gray-800 border-gray-700">
@@ -269,7 +224,6 @@ export default function SectionEditor({ sections, onSectionsChange }: SectionEdi
                   </div>
                 </div>
 
-                {/* Handle both structures */}
                 <SectionContentForm
                   sectionType={section.section_type || (section as any).type}
                   content={section.content}
@@ -281,7 +235,6 @@ export default function SectionEditor({ sections, onSectionsChange }: SectionEdi
         ))}
       </div>
 
-      {/* Add section form */}
       {showAddSection && <AddSectionForm onAdd={addSection} onCancel={() => setShowAddSection(false)} />}
     </div>
   )
@@ -391,87 +344,6 @@ function AddSectionForm({
   )
 }
 
-function EditSectionForm({
-  section,
-  onUpdate,
-  onCancel,
-}: {
-  section: ArticleSection
-  onUpdate: (sectionId: string, updates: Partial<ArticleSection>) => void
-  onCancel: () => void
-}) {
-  const [formData, setFormData] = useState({
-    title: section.title || "",
-    alignment: section.alignment,
-    content: section.content,
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Only update the correct content type for the section
-    onUpdate(section.id, {
-      title: formData.title,
-      alignment: formData.alignment,
-      content: formData.content as ArticleSection["content"],
-    })
-  }
-
-  return (
-    <Card className="border-green-200">
-      <CardHeader>
-        <CardTitle>Modifier la section</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Titre (optionnel)</Label>
-              <Input
-                value={formData.title}
-                onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-                placeholder="Titre de la section"
-              />
-            </div>
-            <div>
-              <Label>Alignement</Label>
-              <Select
-                value={formData.alignment}
-                onValueChange={(value: SectionAlignment) => setFormData((prev) => ({ ...prev, alignment: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ALIGNMENT_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <SectionContentForm
-            sectionType={section.section_type}
-            content={formData.content}
-            onChange={(content) => setFormData((prev) => ({ ...prev, content }))}
-          />
-
-          <div className="flex gap-2">
-            <Button type="submit">Mettre à jour</Button>
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Annuler
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
-  )
-}
-
-
-
 function SectionContentForm({
   sectionType,
   content,
@@ -481,8 +353,6 @@ function SectionContentForm({
   content: ArticleSectionContent
   onChange: (content: ArticleSectionContent) => void
 }) {
-  console.log("[v0] SectionContentForm rendering:", { sectionType, content })
-
   switch (sectionType) {
     case "texte_markdown":
       return (
@@ -993,7 +863,6 @@ function SectionContentForm({
       )
 
     default:
-      console.log("[v0] Unknown section type:", sectionType)
       return (
         <div>
           <Label className="text-gray-300">Configuration personnalisée</Label>

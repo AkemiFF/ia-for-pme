@@ -12,7 +12,6 @@ export type SectionType =
 
 export type SectionAlignment = "left" | "right" | "center"
 
-
 export interface BaseSection {
   id: string
   article_id: string
@@ -111,6 +110,23 @@ export type ArticleSection =
   | GallerySection
   | QuoteSection
   | CodeSection
+
+export type ArticleSectionContent =
+  | { markdown: string }
+  | { url: string; alt_text: string; caption?: string }
+  | { url: string; thumbnail?: string; duration?: number; caption?: string }
+  | {
+      product_name: string
+      product_url: string
+      affiliate_url: string
+      image_url?: string
+      price?: string
+      description: string
+    }
+  | { file_url: string; file_name: string; file_size?: number; file_type?: string }
+  | { images: Array<{ url: string; alt_text: string; caption?: string }> }
+  | { quote: string; author?: string; source?: string }
+  | { code: string; language?: string; filename?: string }
 
 export interface SectionFormData {
   section_type: SectionType
